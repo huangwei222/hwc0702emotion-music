@@ -1,0 +1,278 @@
+[
+  {
+    "id": "t01",
+    "title": "晨光 Sunrise Pop",
+    "artist": "Local Synth Lab",
+    "file": "songs/t01.wav",
+    "duration": 23.73,
+    "sizeKB": 1022,
+    "truth": {
+      "bpm": 124,
+      "mode": "major",
+      "emo": "happy",
+      "va": [
+        0.88,
+        0.78
+      ]
+    },
+    "genre": "Pop",
+    "tags": [
+      "明亮",
+      "大调",
+      "轻快"
+    ]
+  },
+  {
+    "id": "t02",
+    "title": "跃动脉冲 Dance Pulse",
+    "artist": "Local Synth Lab",
+    "file": "songs/t02.wav",
+    "duration": 23.0,
+    "sizeKB": 991,
+    "truth": {
+      "bpm": 128,
+      "mode": "major",
+      "emo": "happy",
+      "va": [
+        0.85,
+        0.93
+      ]
+    },
+    "genre": "EDM",
+    "tags": [
+      "四踩",
+      "大调",
+      "高能"
+    ]
+  },
+  {
+    "id": "t03",
+    "title": "雨窗 Rain Window",
+    "artist": "Local Synth Lab",
+    "file": "songs/t03.wav",
+    "duration": 44.14,
+    "sizeKB": 1901,
+    "truth": {
+      "bpm": 66,
+      "mode": "minor",
+      "emo": "sad",
+      "va": [
+        0.16,
+        0.24
+      ]
+    },
+    "genre": "Lo-fi",
+    "tags": [
+      "小调",
+      "慢速",
+      "暗淡"
+    ]
+  },
+  {
+    "id": "t04",
+    "title": "空房间 Empty Room",
+    "artist": "Local Synth Lab",
+    "file": "songs/t04.wav",
+    "duration": 50.16,
+    "sizeKB": 2160,
+    "truth": {
+      "bpm": 58,
+      "mode": "minor",
+      "emo": "sad",
+      "va": [
+        0.1,
+        0.16
+      ]
+    },
+    "genre": "Ambient",
+    "tags": [
+      "极慢",
+      "小调",
+      "空灵"
+    ]
+  },
+  {
+    "id": "t05",
+    "title": "铁怒 Iron Rage",
+    "artist": "Local Synth Lab",
+    "file": "songs/t05.wav",
+    "duration": 19.45,
+    "sizeKB": 838,
+    "truth": {
+      "bpm": 152,
+      "mode": "minor",
+      "emo": "angry",
+      "va": [
+        0.14,
+        0.95
+      ]
+    },
+    "genre": "Metal",
+    "tags": [
+      "失真",
+      "快速",
+      "强节奏"
+    ]
+  },
+  {
+    "id": "t06",
+    "title": "风暴驱动 Storm Drive",
+    "artist": "Local Synth Lab",
+    "file": "songs/t06.wav",
+    "duration": 20.5,
+    "sizeKB": 883,
+    "truth": {
+      "bpm": 144,
+      "mode": "minor",
+      "emo": "angry",
+      "va": [
+        0.2,
+        0.88
+      ]
+    },
+    "genre": "Rock",
+    "tags": [
+      "小调",
+      "半音冲突",
+      "高能"
+    ]
+  },
+  {
+    "id": "t07",
+    "title": "静电惊雷 Static Shock",
+    "artist": "Local Synth Lab",
+    "file": "songs/t07.wav",
+    "duration": 21.37,
+    "sizeKB": 920,
+    "truth": {
+      "bpm": 138,
+      "mode": "major",
+      "emo": "surprised",
+      "va": [
+        0.5,
+        0.88
+      ]
+    },
+    "genre": "Electro",
+    "tags": [
+      "离调",
+      "跳跃",
+      "尖锐"
+    ]
+  },
+  {
+    "id": "t08",
+    "title": "玻璃漂流 Glass Drift",
+    "artist": "Local Synth Lab",
+    "file": "songs/t08.wav",
+    "duration": 40.5,
+    "sizeKB": 1744,
+    "truth": {
+      "bpm": 72,
+      "mode": "major",
+      "emo": "neutral",
+      "va": [
+        0.55,
+        0.38
+      ]
+    },
+    "genre": "Chill",
+    "tags": [
+      "中速",
+      "大调",
+      "通透"
+    ]
+  },
+  {
+    "id": "t09",
+    "title": "静湖 Still Lake",
+    "artist": "Local Synth Lab",
+    "file": "songs/t09.wav",
+    "duration": 45.5,
+    "sizeKB": 1960,
+    "truth": {
+      "bpm": 64,
+      "mode": "major",
+      "emo": "neutral",
+      "va": [
+        0.62,
+        0.2
+      ]
+    },
+    "genre": "Ambient",
+    "tags": [
+      "慢速",
+      "柔和",
+      "低亮"
+    ]
+  },
+  {
+    "id": "t10",
+    "title": "夜行 Night Walk",
+    "artist": "Local Synth Lab",
+    "file": "songs/t10.wav",
+    "duration": 30.5,
+    "sizeKB": 1314,
+    "truth": {
+      "bpm": 96,
+      "mode": "minor",
+      "emo": "fearful",
+      "va": [
+        0.22,
+        0.55
+      ]
+    },
+    "genre": "Dark Ambient",
+    "tags": [
+      "三全音",
+      "不稳定",
+      "压迫"
+    ]
+  },
+  {
+    "id": "t11",
+    "title": "酸柠檬 Sour Lemon",
+    "artist": "Local Synth Lab",
+    "file": "songs/t11.wav",
+    "duration": 27.17,
+    "sizeKB": 1170,
+    "truth": {
+      "bpm": 108,
+      "mode": "minor",
+      "emo": "disgusted",
+      "va": [
+        0.26,
+        0.55
+      ]
+    },
+    "genre": "Quirky",
+    "tags": [
+      "减和弦",
+      "摩擦感",
+      "怪诞"
+    ]
+  },
+  {
+    "id": "t12",
+    "title": "霓虹天空 Neon Sky",
+    "artist": "Local Synth Lab",
+    "file": "songs/t12.wav",
+    "duration": 24.91,
+    "sizeKB": 1073,
+    "truth": {
+      "bpm": 118,
+      "mode": "major",
+      "emo": "happy",
+      "va": [
+        0.8,
+        0.72
+      ]
+    },
+    "genre": "Synthpop",
+    "tags": [
+      "明亮",
+      "大调",
+      "律动"
+    ]
+  }
+]

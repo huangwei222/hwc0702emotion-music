@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>情绪音乐推荐系统 · 人脸情绪识别 + 旋律情绪分析</title>
+<meta name="description" content="基于 Vue3 + HTML5 的本地人脸情绪识别与歌曲推荐系统，识别人脸情绪，用本地 DSP 分析曲库旋律情绪，按情绪坐标推荐歌曲。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c5cff'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='white'%3E%E2%99%AA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<!-- ======================= 顶栏 ======================= -->
+<div id="app" v-cloak>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">♪</div>
+      <div class="brand-text">
+        <h1>情绪音乐推荐系统</h1>
+        <p>人脸情绪识别 → 情绪坐标 → 曲库旋律匹配 → 个性化推荐</p>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip" :class="engineReady ? 'ok' : 'warn'">
+        <i class="dot"></i>{{ engineReady ? '识别模型就绪' : '模型加载中…' }}
+      </span>
+      <span class="chip" v-if="backend !== '-'">后端 {{ backend.toUpperCase() }}</span>
+      <span class="chip" v-if="lastMs">单帧 {{ lastMs }} ms</span>
+      <span class="chip" v-if="fps > 0">{{ fps }} FPS</span>
+      <span class="quality-seg" v-if="qualityOptions.length" title="识别档位：越高越准，越低越快">
+        <button v-for="q in qualityOptions" :key="q.key" class="seg" :class="{ on: quality === q.key }"
+                @click="setQuality(q.key)">{{ q.cn }}</button>
+      </span>
+      <span class="chip" :class="libraryReady ? 'ok' : ''">
+        曲库已分析 {{ analyzedCount }}/{{ library.length }}
+      </span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- ==================== ① 采集 ==================== -->
+    <section class="panel media-panel">
+      <div class="panel-head">
+        <h2><span class="step">01</span>采集人脸</h2>
+        <p class="sub">四种输入源，同一套本地识别流水线</p>
+      </div>
+
+      <div class="tabs">
+        <button v-for="m in modes" :key="m.key" class="tab" :class="{ active: mode === m.key }"
+                @click="switchMode(m.key)">
+          <span class="tab-ico">{{ m.icon }}</span>{{ m.label }}
+        </button>
+      </div>
+
+      <div class="stage" :style="{ aspectRatio: stageAspect }">
+        <video ref="video" v-show="mode !== 'image'" autoplay playsinline muted></video>
+        <img ref="img" v-show="mode === 'image' && imageUrl" :src="imageUrl" alt="待识别人脸" @load="onImageLoad">
+        <canvas ref="overlay"></canvas>
+        <div class="stage-empty" v-if="!hasSource">
+          <div class="dash">
+            <div class="dash-ico">{{ currentMode.icon }}</div>
+            <b>{{ currentMode.label }}</b>
+            <span>{{ currentMode.tip }}</span>
+          </div>
+        </div>
+        <div class="stage-tag" v-if="result && result.found" :style="{ '--c': emoInfo.color }">
+          {{ emoInfo.emoji }} {{ emoInfo.cn }} · {{ Math.round(result.confidence * 100) }}%
+        </div>
+      </div>
+
+      <div class="controls">
+        <template v-if="mode === 'image'">
+          <label class="btn primary">
+            选择本地图片
+            <input type="file" accept="image/*" hidden @change="onImageFile">
+          </label>
+          <button class="btn ghost" v-if="imageUrl" @click="clearImage">清除</button>
+          <span class="hint">建议单人正脸、光照均匀</span>
+        </template>
+
+        <template v-else-if="mode === 'video'">
+          <label class="btn primary">
+            打开视频文件
+            <input type="file" accept="video/*" hidden @change="onVideoFile">
+          </label>
+          <button class="btn ghost" v-if="videoReady" @click="toggleVideo">{{ videoPaused ? '继续播放' : '暂停' }}</button>
+          <span class="hint">本地视频全程不出浏览器</span>
+        </template>
+
+        <template v-else-if="mode === 'camera'">
+          <button class="btn primary" v-if="!running" @click="startCamera">开启摄像头</button>
+          <button class="btn danger" v-else @click="stopAll">停止采集</button>
+          <span class="hint">首次使用需授权浏览器摄像头权限</span>
+        </template>
+
+        <template v-else>
+          <button class="btn primary" v-if="!running" @click="startScreen">共享屏幕 / 窗口</button>
+          <button class="btn danger" v-else @click="stopAll">停止共享</button>
+          <span class="hint">可共享正在播放的影片、视频会议画面</span>
+        </template>
+      </div>
+
+      <div class="gallery" v-if="mode === 'image'">
+        <div class="gallery-head">
+          <h3>演示人脸库 <span class="tag">{{ faces.length }} 张 · 5 种情绪</span></h3>
+          <span class="hint">点任意一张，自动跑完整条链路</span>
+        </div>
+        <div class="gallery-groups">
+          <div class="gallery-group" v-for="g in faceGroups" :key="g.key">
+            <div class="group-label" :style="{ color: emotions[g.key].color }">{{ g.cn }}</div>
+            <figure v-for="f in g.items" :key="f.file" class="face-card" @click="pickFace(g, f)"
+                    :class="{ active: imageUrl === f.file }">
+              <img :src="f.file" :alt="g.cn + ' ' + f.caption" loading="lazy">
+              <figcaption>
+                <b :style="{ color: emotions[g.key].color }">{{ g.cn }}</b>
+                <span>{{ f.caption }}</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ② 结果 ==================== -->
+    <section class="panel result-panel">
+      <div class="panel-head">
+        <h2><span class="step">02</span>情绪识别</h2>
+        <p class="sub">
+          <template v-if="!result">等待输入画面</template>
+          <template v-else-if="!result.found">未检测到人脸</template>
+          <template v-else>EMA 平滑 + 主导类滞回</template>
+        </p>
+      </div>
+
+      <div class="hero" v-if="result && result.found" :style="{ '--c': emoInfo.color }">
+        <div class="hero-emoji">{{ emoInfo.emoji }}</div>
+        <div class="hero-main">
+          <div class="hero-label">{{ emoInfo.cn }}</div>
+          <div class="hero-sub">{{ emoInfo.quadrant }} · {{ emoInfo.feel }}</div>
+        </div>
+        <div class="hero-conf">{{ Math.round(result.confidence * 100) }}<small>%</small></div>
+      </div>
+      <div class="empty" v-else>
+        <div class="empty-ico">◎</div>
+        <b>{{ result ? '画面中没有检测到人脸' : '还没有输入画面' }}</b>
+        <span>把正脸放进画面中央，识别会自动开始</span>
+      </div>
+
+      <div class="va-row" v-if="result && result.found">
+        <div class="va-cell">
+          <span>效价 Valence</span>
+          <div class="mini-track"><i :style="{ width: (currentVA.valence * 100) + '%' }"></i></div>
+          <b>{{ currentVA.valence.toFixed(2) }}</b>
+        </div>
+        <div class="va-cell">
+          <span>唤醒 Arousal</span>
+          <div class="mini-track alt"><i :style="{ width: (currentVA.arousal * 100) + '%' }"></i></div>
+          <b>{{ currentVA.arousal.toFixed(2) }}</b>
+        </div>
+      </div>
+
+      <div class="bars" v-if="result && result.found">
+        <div class="bar-row" v-for="r in probRows" :key="r.key">
+          <span class="bar-name" :class="{ top: r.key === (result && result.label) }">{{ r.cn }}</span>
+          <div class="bar-track"><i :style="{ width: (r.p * 100).toFixed(1) + '%', background: r.color }"></i></div>
+          <span class="bar-val">{{ (r.p * 100).toFixed(1) }}</span>
+        </div>
+      </div>
+
+      <details class="fuse" v-if="result && result.found">
+        <summary>双通道融合细节（表情 CNN 0.78 + 几何规则 0.22）</summary>
+        <table class="mini-table">
+          <thead><tr><th>情绪</th><th>CNN</th><th>几何</th><th>融合</th></tr></thead>
+          <tbody>
+            <tr v-for="r in fuseRows" :key="r.key">
+              <td>{{ r.cn }}</td>
+              <td>{{ (r.cnn * 100).toFixed(1) }}%</td>
+              <td>{{ (r.geo * 100).toFixed(1) }}%</td>
+              <td>{{ (r.p * 100).toFixed(1) }}%</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="geo-facts" v-if="result.geo">
+          <span>EAR 眼开度 <b>{{ result.geo.ear.toFixed(3) }}</b></span>
+          <span>嘴角上扬 <b>{{ result.geo.smile.toFixed(3) }}</b></span>
+          <span>眉高比 <b>{{ result.geo.browHeight.toFixed(3) }}</b></span>
+          <span>眉心距 <b>{{ result.geo.innerBrowGap.toFixed(3) }}</b></span>
+        </div>
+      </details>
+    </section>
+
+    <!-- ==================== ③ 推荐 ==================== -->
+    <section class="panel rec-panel">
+      <div class="panel-head">
+        <h2><span class="step">03</span>情绪推荐</h2>
+        <div class="seg">
+          <button v-for="(s, k) in strategies" :key="k" :class="{ active: strategy === k }"
+                  @click="strategy = k">{{ s.cn }}</button>
+        </div>
+      </div>
+      <p class="strategy-desc">{{ strategies[strategy].desc }}</p>
+
+      <div class="rec-top">
+        <svg class="va-plot" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="vaBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#2b2350" stop-opacity="0.55" />
+              <stop offset="55%" stop-color="#141a2b" stop-opacity="0.35" />
+              <stop offset="100%" stop-color="#0e2f36" stop-opacity="0.5" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="100" height="100" fill="url(#vaBg)" />
+          <line x1="50" y1="0" x2="50" y2="100" class="axis" />
+          <line x1="0" y1="50" x2="100" y2="50" class="axis" />
+          <text x="3" y="8" class="axis-t">高唤醒</text>
+          <text x="3" y="97" class="axis-t">低唤醒</text>
+          <text x="76" y="97" class="axis-t">高效价</text>
+          <text x="3" y="97" class="axis-t" style="display:none"></text>
+          <circle v-for="(p, i) in scatter" :key="'p' + i" :cx="p.x" :cy="p.y" :r="p.r"
+                  :fill="p.color" :opacity="p.op" />
+          <g v-if="targetXY">
+            <circle :cx="targetXY.x" :cy="targetXY.y" r="5.6" fill="none" stroke="#fff" stroke-opacity="0.38" stroke-width="0.8" />
+            <circle :cx="targetXY.x" :cy="targetXY.y" r="2.6" fill="#fff" stroke="#7c5cff" stroke-width="1" />
+            <text :x="Math.min(88, targetXY.x + 4)" :y="Math.max(6, targetXY.y - 3.4)" class="axis-t strong">目标</text>
+          </g>
+        </svg>
+        <div class="rec-meta">
+          <div class="meta-line"><span>目标坐标</span>
+            <b v-if="target">V {{ target.valence.toFixed(2) }} · A {{ target.arousal.toFixed(2) }}</b>
+            <b v-else>—</b>
+          </div>
+          <div class="meta-line"><span>调节混合比例</span><b v-if="target">{{ Math.round(target.mix * 100) }}%</b><b v-else>—</b></div>
+          <div class="meta-line"><span>候选曲目</span><b>{{ candidateCount }}</b></div>
+          <div class="meta-line"><span>画像权重</span><b>{{ Math.round(profile.weight * 100) }}%</b></div>
+          <div class="meta-note">
+            点：曲库曲目（越亮=匹配越高）　白圈：本次推荐目标
+          </div>
+        </div>
+      </div>
+
+      <div class="rec-actions">
+        <button class="btn tiny" @click="analyzeLibrary" :disabled="analyzing">
+          {{ analyzing ? analyzeMsg : (libraryReady ? '重新分析曲库' : '分析本地曲库') }}
+        </button>
+        <button class="btn tiny ghost" @click="fetchOnline(true)" :disabled="onlineLoading || !result">
+          {{ onlineLoading ? '搜索中…' : '搜索在线曲目' }}
+        </button>
+        <button class="btn tiny ghost" @click="$refs.songPicker.click()" :disabled="uploading">
+          {{ uploading ? uploadMsg : '上传我的歌曲' }}
+        </button>
+        <input ref="songPicker" type="file" class="hidden-file" multiple
+               accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.opus" @change="onSongPick">
+        <span class="hint" v-if="onlineMsg">{{ onlineMsg }}</span>
+        <button class="btn tiny ghost" v-if="profile.weight > 0" @click="resetProfile">重置画像</button>
+      </div>
+
+      <div class="upload-panel" :class="{ drop: dropActive, empty: !uploads.length }"
+           @dragover.prevent="dropActive = true"
+           @dragleave.prevent="dropActive = false"
+           @drop.prevent="onSongDrop">
+        <div class="upload-head">
+          <b>我的歌曲 <span class="tag" v-if="uploads.length">{{ uploads.length }}</span></b>
+          <span class="hint" v-if="uploading">{{ uploadMsg }}</span>
+          <span class="hint" v-else-if="uploads.length">存在浏览器本地，不上传服务器 · 可继续把音频拖到这里</span>
+          <span class="hint" v-else>把 mp3 / wav / m4a 拖到这里，或点上方「上传我的歌曲」</span>
+        </div>
+        <div class="upload-list" v-if="uploads.length">
+          <div v-for="t in uploads" :key="t.id" class="upload-item">
+            <span class="u-title" :title="t.filename">{{ t.title }}</span>
+            <span class="u-meta" v-if="t.analysis">
+              {{ Math.round(t.analysis.raw.bpm) }} BPM · {{ t.analysis.raw.key }} ·
+              V {{ t.va.valence.toFixed(2) }} / A {{ t.va.arousal.toFixed(2) }}
+            </span>
+            <span class="u-meta" v-else>分析失败</span>
+            <button class="mini" @click.stop="play(t)">播放</button>
+            <button class="mini ghost" @click.stop="removeUpload(t)">移除</button>
+          </div>
+        </div>
+        <p class="upload-err" v-if="uploadErr">{{ uploadErr }}</p>
+      </div>
+
+      <div class="rec-list">
+        <article v-for="t in recommendations" :key="t.id" class="rec-item"
+                 :class="{ playing: current && current.id === t.id }">
+          <div class="rec-rank">{{ t.rank }}</div>
+          <div class="rec-body">
+            <div class="rec-title">
+              <b>{{ t.title }}</b>
+              <span class="badge" :class="t.source">{{ t.source === 'online' ? '在线' : (t.source === 'upload' ? '我的' : '本地') }}</span>
+            </div>
+            <div class="rec-tags">
+              <span>{{ t.artist }}</span>
+              <span v-if="t.analysis">BPM {{ Math.round(t.analysis.raw.bpm) }}</span>
+              <span v-if="t.analysis">{{ t.analysis.raw.mode === 'major' ? '大调' : '小调' }}</span>
+              <span v-if="t.mood">{{ t.mood }}</span>
+              <span v-if="t.vaEstimated && !t.analysis">VA 先验</span>
+            </div>
+            <p class="rec-reason">{{ t.reason }}</p>
+          </div>
+          <div class="rec-side">
+            <div class="match">{{ t.match }}<small>%</small></div>
+            <button class="mini" @click.stop="play(t)">播放</button>
+          </div>
+        </article>
+        <div class="empty small" v-if="!recommendations.length">
+          <b>先让人脸出现，推荐会自动生成</b>
+          <span v-if="!libraryReady">也可以先点「分析本地曲库」</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== 播放器 ==================== -->
+  <footer class="playerbar">
+    <div class="now">
+      <div class="cover" :style="{ background: coverGradient }">♪</div>
+      <div class="now-meta">
+        <b>{{ current ? current.title : '未选择曲目' }}</b>
+        <span>{{ current ? current.artist + (current.source === 'online' ? ' · 在线流媒体' : (current.source === 'upload' ? ' · 我的歌曲' : ' · 本地文件')) : '点击推荐列表右侧「播放」开始' }}</span>
+      </div>
+    </div>
+    <div class="player-mid">
+      <button class="play-btn" @click="togglePlay" :disabled="!current">{{ playing ? '❚❚' : '▶' }}</button>
+      <div class="progress" @click="seek">
+        <i :style="{ width: progress + '%' }"></i>
+      </div>
+      <span class="time">{{ fmtTime(curTime) }} / {{ fmtTime(duration) }}</span>
+    </div>
+    <div class="player-right">
+      <button class="icon-btn" @click="likeCurrent" :disabled="!current" title="喜欢（会调整画像）">♡</button>
+      <button class="icon-btn" @click="skipCurrent" :disabled="!current" title="跳过（弱负反馈）">⏭</button>
+    </div>
+    <audio ref="audio" @timeupdate="onTime" @loadedmetadata="onMeta" @play="playing = true"
+           @pause="playing = false" @ended="onEnded" @error="onAudioError"></audio>
+  </footer>
+
+  <transition name="fade">
+    <div class="toast" v-if="toast">{{ toast }}</div>
+  </transition>
+</div>
+
+<!-- ======================= 说明文档（静态） ======================= -->
+<section class="docs" id="docs">
+  <div class="doc-nav">
+    <a href="#doc-usage">使用说明</a>
+    <a href="#doc-face">人脸情绪识别算法</a>
+    <a href="#doc-music">旋律曲调情绪算法</a>
+    <a href="#doc-rec">推荐策略</a>
+    <a href="#doc-perf">性能与实测</a>
+  </div>
+
+  <!-- 使用说明 -->
+  <article class="doc-card" id="doc-usage">
+    <h2>一、使用说明</h2>
+    <p class="lead">整个系统跑在浏览器里：图片、视频、摄像头画面<b>不会上传到任何服务器</b>，识别、音频分析与推荐全部在前端本地完成。</p>
+
+    <h3>1. 四种人脸输入方式</h3>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>方式</th><th>操作步骤</th><th>适用场景</th><th>注意</th></tr></thead>
+      <tbody>
+        <tr><td>上传图片</td><td>点「选择本地图片」，或直接点下方演示人脸库任一张</td><td>评测、演示、单次识别</td><td>单人正脸，光照均匀，脸占画面 1/4 以上</td></tr>
+        <tr><td>打开视频</td><td>点「打开视频文件」选择本地 mp4/webm，自动逐帧识别</td><td>分析影视片段里的人物情绪变化</td><td>识别频率约 12 FPS，可随时暂停</td></tr>
+        <tr><td>实时摄像头</td><td>点「开启摄像头」并授权，正脸对准镜头</td><td>实时互动、情绪跟随切歌</td><td>需 localhost 或 https 环境才能调用摄像头</td></tr>
+        <tr><td>屏幕视频</td><td>点「共享屏幕 / 窗口」，选择正在播放视频的窗口</td><td>演示「看剧时自动配乐」</td><td>共享整个屏幕时，人脸需占画面较大比例</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>2. 推荐流程</h3>
+    <ol class="steps">
+      <li><b>识别人脸情绪</b>：画面中出现人脸后，右侧实时显示 7 类情绪概率与二维情绪坐标。</li>
+      <li><b>分析本地曲库</b>：首次进入自动分析 12 首本地曲目（每首约 0.1–0.25 秒），结果缓存到 localStorage，下次秒开。</li>
+      <li><b>选择推荐策略</b>：情绪共鸣 / 情绪调节 / 混合策略，切换后推荐列表立即重排。</li>
+      <li><b>播放与反馈</b>：点「播放」试听；点 ♡ 喜欢或 ⏭ 跳过，会即时更新你的情绪画像并影响后续排序。画像与反馈会存到 <code>localStorage</code>，刷新后仍在；想从零开始就点「重置画像」。</li>
+      <li><b>在线曲库</b>：点「搜索在线曲目」按当前情绪关键词检索 Audius 开放曲库；点播后会用同一套本地算法旁路分析其真实旋律特征。</li>
+    </ol>
+
+    <h3>3. 用自己的歌</h3>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>要做的事</th><th>做法</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>添加歌曲</td><td>点「上传我的歌曲」选文件，或把音频直接拖进「我的歌曲」区域</td><td>支持 mp3 / wav / m4a / aac / flac / ogg，可一次多选，逐首串行分析</td></tr>
+        <tr><td>自动分析</td><td>上传后立即用同一套本地 DSP 算 BPM、调式、VA 坐标</td><td>只取前 90 秒做统计（实测 8.4 MB / 199 秒的曲目仅 472 ms），播放时长仍是完整曲目</td></tr>
+        <tr><td>存在哪里</td><td>音频 Blob 写入浏览器 IndexedDB，刷新/重开浏览器仍在</td><td>音频不离开本机，无任何上传请求；隐私模式下只对当前页面有效</td></tr>
+        <tr><td>参与推荐</td><td>与内置 12 首同等进入候选池，一起做加权距离与 MMR 重排</td><td>列表中以「我的」徽标区分；若上传的就是库里那首歌，两者得分会几乎相同，属正常现象</td></tr>
+        <tr><td>删除</td><td>点曲目右侧「移除」</td><td>同时清理 IndexedDB 记录与内存中的 objectURL，不留残留</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>4. 界面速览</h3>
+    <ul class="bullets">
+      <li><b>① 采集人脸</b>：四种输入源与 15 张演示人脸（5 种情绪 × 3 张）。</li>
+      <li><b>② 情绪识别</b>：主导情绪、置信度、7 类概率条、CNN 与几何双通道对比。顶栏右侧可切<b>识别档位</b>（高精度 / 均衡 / 快速）。</li>
+      <li><b>③ 情绪推荐</b>：VA 散点图、目标坐标、推荐列表与匹配度。</li>
+      <li><b>底部播放器</b>：进度条、喜欢、跳过。</li>
+    </ul>
+  </article>
+
+  <!-- 人脸算法 -->
+  <article class="doc-card" id="doc-face">
+    <h2>二、人脸情绪识别算法</h2>
+    <p class="lead">采用「检测 → 关键点 → 表情分类 → 晚期融合 → 时序平滑」的经典五段式流水线，全部本地推理，单帧 20–60 ms。</p>
+
+    <h3>1. 流水线总览</h3>
+    <pre class="formula">输入帧
+  │
+  ├─① TinyFaceDetector（SSD 单阶段检测，输入可切 416/320/224）
+  │     └─▶ 人脸框 bbox + 检测置信度（NMS 后取最高分）
+  │
+  ├─② 68 点关键点回归（tiny landmark）
+  │     └─▶ 6 维几何特征：EAR / 嘴角上扬 / 眉高比 / 眉心距 / 张口度 / 嘴宽比
+  │
+  ├─③ FaceExpressionNet（mini-Xception）
+  │     └─▶ 7 类 softmax：neutral happy sad angry fearful disgusted surprised
+  │
+  ├─④ 晚期融合：P = 0.78·P_cnn + 0.22·P_geo
+  │
+  └─⑤ EMA 平滑 + 主导类滞回 ──▶ 稳定情绪标签 + 置信度</pre>
+
+    <h3>2. 人脸检测：TinyFaceDetector（SSD + 深度可分离卷积）</h3>
+    <p>单阶段检测器（Single Shot MultiBox Detector）。骨干网络用<b>深度可分离卷积</b>（depthwise + pointwise）替代普通卷积，把参数量与乘加次数压到 1/8 左右；在多个尺度特征图上以 anchor 方式直接回归「人脸框偏移 (dx, dy, dw, dh)」与「置信度」，最后做 NMS 去重。</p>
+    <pre class="formula">损失函数（训练期）: L = L_conf(cls, c) + λ·L_box(t, t*)      IoU 阈值 = 0.3，λ ≈ 2
+推理期: 输入缩放到 N×N（N 取 416/320/224/192）→ 前向 → 置信度 > 阈值 的 anchor → NMS → 取最高分人脸</pre>
+    <p>工程参数：<code>inputSize</code> 可切三档（WebGL：416 / 320 / 224，CPU：320 / 256 / 192）、<code>scoreThreshold</code>（WebGL 0.35 / CPU 0.4，CPU 上调是因为低分辨率下弱证据更容易被放大成错判）、模型权重仅 193 KB。因为只在固定分辨率的特征图上做一次前向，所以检测延迟与画面内容无关，是<b>恒定 O(H·W·C)</b> 的卷积开销。</p>
+
+    <h3>3. 68 点关键点与几何特征</h3>
+    <p>tiny landmark 网络在检测框内回归 68 个面部关键点，用于计算可解释的面部动作单元（AU）近似量：</p>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>几何特征</th><th>定义</th><th>情绪含义</th></tr></thead>
+      <tbody>
+        <tr><td>眼睛纵横比 EAR</td><td>EAR = (|p₂−p₆| + |p₃−p₅|) / (2|p₁−p₄|)</td><td>睁眼程度：惊讶/恐惧时显著增大</td></tr>
+        <tr><td>嘴角上扬 smile</td><td>s = (y_唇中 − y_嘴角) / 瞳距</td><td>s &gt; 0 为嘴角上翘，开心核心特征</td></tr>
+        <tr><td>眉高比 browHeight</td><td>(y_眼上缘 − y_眉) / 瞳距</td><td>眉毛抬高：惊讶、恐惧（AU1+AU2）</td></tr>
+        <tr><td>眉心距 innerBrowGap</td><td>|p₂₁ − p₂₂| / 瞳距</td><td>皱眉收拢：愤怒、厌恶（AU4）</td></tr>
+        <tr><td>张口度 mouthOpen</td><td>|p₆₂ − p₆₆| / 瞳距</td><td>惊讶、呼喊；闭唇紧压则偏愤怒</td></tr>
+        <tr><td>嘴宽比 mouthWidth</td><td>|p₄₈ − p₅₄| / 瞳距</td><td>大笑时嘴角外拉（AU12）</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>4. 表情分类：FaceExpressionNet（mini-Xception）</h3>
+    <p>在 FER 数据集训练的轻量卷积网络，采用 mini-Xception 结构：<b>深度可分离卷积 + 残差连接 + 全局平均池化</b>，最后 softmax 输出 7 类概率。模型仅 329 KB，输入 48×48 灰度人脸，单帧 &lt; 5 ms。</p>
+    <pre class="formula">P_cnn = softmax(W·GAP(ResBlock(DepthwiseConv(x))) + b) ∈ R⁷
+类别 = { neutral, happy, sad, angry, fearful, disgusted, surprised }</pre>
+
+    <h3>5. 晚期融合：为什么还要几何规则</h3>
+    <p>CNN 在侧脸、逆光、口罩、遮挡时会系统性地偏向中性。几何特征虽然噪声大，但在正脸条件下对「笑」「皱眉」「张嘴」非常敏感且方向明确，因此取两者加权：</p>
+    <pre class="formula">P_fused[k] = 0.78 · P_cnn[k] + 0.22 · P_geo[k],   k ∈ 7 类,   Σ P_fused = 1
+
+P_geo 由可解释规则归一化得到，例如：
+  happy    = 0.62·smileN + 0.24·mouthWidthN + 0.14·(0.5 + 0.5·openN)
+  angry    = 0.52·knitN  + 0.28·pressN      + 0.20·(1 − smileN)·knitN
+  surprised= 0.46·raiseN + 0.32·wideN       + 0.22·openN</pre>
+
+    <h3>6. 时序平滑与标签稳定</h3>
+    <p>逐帧独立分类会出现「开心 → 中性 → 开心」的抖动。用指数滑动平均（EMA）做低通滤波，再加主导类滞回：</p>
+    <pre class="formula">S_t = α · P_fused,t + (1 − α) · S_{t−1},      α = 0.55
+切换主导类条件: S_t[k'] &gt; S_t[k_current] + 0.10   （滞回阈值，避免临界抖动）</pre>
+
+    <h3>7. 复杂度</h3>
+    <pre class="formula">检测 O(H·W·C·k²) ≈ 常量（H·W 由档位固定，与画面内容无关）
+关键点 O(N_pts · C)
+分类 O(C² · N_block)
+整链单帧 20–60 ms（WebGL） / 300–800 ms（CPU 回退，输入已降为 224），12 FPS 采样下 WebGL 路径 CPU 占用 &lt; 30%</pre>
+  </article>
+
+  <!-- 音乐算法 -->
+  <article class="doc-card" id="doc-music">
+    <h2>三、旋律曲调情绪识别算法</h2>
+    <p class="lead">对本地音频做纯信号处理（不依赖任何云端服务或预训练模型），提取「快慢、节奏、频率高低、调式」四类线索，映射到二维情绪平面。</p>
+
+    <h3>1. 预处理</h3>
+    <ul class="bullets">
+      <li>多声道下混为单声道：<code>x[n] = (1/C)·Σ x_c[n]</code></li>
+      <li>线性插值重采样到 <b>11025 Hz</b>：情绪相关的音色/节奏信息集中在 5 kHz 以内，降采样使 FFT 计算量降到 44.1 kHz 的 1/4。</li>
+    </ul>
+
+    <h3>2. 短时傅里叶变换（STFT）</h3>
+    <pre class="formula">X_t[k] = Σ_{n=0}^{N−1} x[t·H + n] · w[n] · e^(−j2πkn/N)
+N = 2048（约 186 ms 窗长）, H = 256（约 23 ms 帧移）, w = 汉宁窗, 频率分辨率 5.38 Hz</pre>
+
+    <h3>3. 节奏：对数谱通量起音检测 + 自相关测速</h3>
+    <p>先对每帧幅度谱做<b>尺度无关的对数压缩</b>，再取正向差分求和，得到起音强度包络（对弱起音也敏感，且不会被响亮的持续声部淹没）：</p>
+    <pre class="formula">L_t[k] = ln(1 + 99·|X_t[k]| / max_k|X_t[k]|)
+Δ_t   = Σ_k max(0, L_t[k] − L_{t−1}[k])            ← 谱通量
+e_t   = max(0, Δ_t − 1.15·mean(Δ_{t−8..t}))        ← 去局部均值后半波整流，再归一化</pre>
+    <p>对包络做自相关，峰位置即「拍周期」，再叠加两个经典技巧：</p>
+    <pre class="formula">r(τ) = Σ_t e_t·e_{t+τ} / Σ_t e_t²                    （归一化自相关，τ 为帧数）
+候选 BPM = 60·f_env / τ,   f_env = 11025/256 ≈ 43.07 Hz
+① 对数高斯节奏先验：w(bpm) = exp(−½·(log₂(bpm/112)/0.9)²)   （人类节拍中心 ≈ 110–120 BPM）
+② 抛物线插值细化：τ* = τ + ½(y₋₁ − y₊₁)/(y₋₁ − 2y₀ + y₊₁)   （把量化误差从 3% 降到 &lt;0.5%）
+③ 倍频消歧：若 r(τ/2) ≥ 0.33·r(τ) 且对应 BPM ≤ 180，则把节奏层级上移到"拍"层
+   （4/4 里底鼓在 1、3 拍、军鼓在 2、4 拍，会让自相关在"两拍"处更强，这是最常见的倍频误判）</pre>
+
+    <h3>4. 调式：色度向量 × Krumhansl 调性轮廓</h3>
+    <p>只取 120–2000 Hz 的<b>谱局部峰</b>（避免低频鼓点和高频齿音污染），按对数频率折叠到 12 个音级得到色度向量，再与 Krumhansl-Kessler 大/小调轮廓做皮尔逊相关，取 12 个旋转中的最大值：</p>
+    <pre class="formula">chroma[pc] += ln(1 + 60·|X_t[k]|),   pc = round(12·log₂(f/440) + 69) mod 12
+r_major = max_r  corr(roll(chroma, r), KK_major)
+r_minor = max_r  corr(roll(chroma, r), KK_minor)
+调式分 modeScore = r_major − r_minor  （&gt;0 大调，&lt;0 小调）；调性强度 tonality = max(r_major, r_minor)</pre>
+
+    <h3>5. 频率高低：谱质心与频段能量比</h3>
+    <pre class="formula">谱质心  C = Σ_k f_k·|X_t[k]| / Σ_k |X_t[k]|          （音色"亮度"，单位 Hz）
+低频比  R_low  = E(&lt;250 Hz) / E_all                （贝斯/底鼓重量）
+高频比  R_high = E(&gt;2 kHz)  / E_all                （镲片/齿音/失真，尖锐感来源）
+响度    RMS_dB = 20·log₁₀(mean_t RMS_t)
+起音密度 onsetDensity = 有效起音峰数 / 时长（个/秒）  ← "节奏密集程度"，与 BPM 互补</pre>
+
+    <h3>6. 特征归一化</h3>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>特征</th><th>归一化公式</th><th>情绪含义</th></tr></thead>
+      <tbody>
+        <tr><td>速度 bpmN</td><td>clamp((BPM−56)/102)</td><td>快慢 → 唤醒度</td></tr>
+        <tr><td>亮度 brightN</td><td>clamp((C−800)/2400)</td><td>音色明暗 → 效价/唤醒</td></tr>
+        <tr><td>响度 energyN</td><td>clamp((RMS_dB+32)/26)</td><td>能量感</td></tr>
+        <tr><td>起音密度 onsetN</td><td>clamp((density−0.6)/4.0)</td><td>节奏密度</td></tr>
+        <tr><td>调式 modeN</td><td>clamp(0.5 + 2·modeScore)</td><td>大调↔小调 → 效价（主导项）</td></tr>
+        <tr><td>调性强度 tonalityN</td><td>clamp(tonality)</td><td>调性感是否清晰</td></tr>
+        <tr><td>高频比 highN</td><td>clamp((R_high−0.02)/0.35)</td><td>尖锐/刺激感</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>7. 映射到情绪平面（权重由标注曲目最小二乘标定）</h3>
+    <pre class="formula">Arousal = 0.000 + 0.780·bpmN + 0.030·brightN + 0.230·energyN + 0.150·onsetN + 0.080·modeN + 0.020·tonalityN + 0.020·highN
+Valence = −0.010 + 0.020·bpmN + 0.390·brightN + 0.020·energyN + 0.090·onsetN + 0.670·modeN + 0.020·tonalityN + 0.020·highN</pre>
+    <p>权重由 12 首「BPM / 调式 / 情绪标签已知」的标注曲目做<b>带下界约束的最小二乘回归</b>得到（<code>scipy.optimize.lsq_linear</code>，下界 0.02 保证每个特征都保留可解释的正向贡献），标定脚本见 <code>tools/calibrate.py</code>，复现命令 <code>node tools/test_analyzer.js</code>。</p>
+
+    <h3>8. 复杂度</h3>
+    <pre class="formula">STFT:   O(N_frames · N log N) = O(N log N)，N 为采样点数
+其余:   每帧 O(N)（通量/色度/质心/频段能量一遍扫完）
+ACF:    O(L_max · N_frames)，L_max ≈ 47 帧
+实测:   25 秒曲目 92–236 ms（单线程 JS），一次性分析后写入 localStorage 缓存</pre>
+  </article>
+
+  <!-- 推荐算法 -->
+  <article class="doc-card" id="doc-rec">
+    <h2>四、推荐算法与策略</h2>
+
+    <h3>1. 目标情绪点的计算</h3>
+    <p>不直接用最大类，而是用<b>整条 7 类概率分布</b>投影到 VA 平面（期望值），这样"70% 开心 + 25% 平静"和"95% 开心"会得到不同的目标点：</p>
+    <pre class="formula">V_target = Σ_k P[k]·V_k ,   A_target = Σ_k P[k]·A_k
+
+再按策略与"调节目标"混合：
+  情绪共鸣 congruent : T = T_cong
+  情绪调节 regulate  : T = 0.25·T_cong + 0.75·T_reg     （T_reg 见下表）
+  混合策略 mixed     : T = 0.70·T_cong + 0.30·T_reg</pre>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>识别到</th><th>情绪共鸣（陪着）</th><th>情绪调节（牵引到）</th></tr></thead>
+      <tbody>
+        <tr><td>开心</td><td>明亮大调、快板</td><td>高效价 + 中高唤醒（保持好状态）</td></tr>
+        <tr><td>悲伤</td><td>小调、慢速、低亮度</td><td>V 0.64 / A 0.46（先共情、再轻推向上）</td></tr>
+        <tr><td>愤怒</td><td>失真、强节奏、高响度</td><td>V 0.52 / A 0.30（降唤醒、泄压）</td></tr>
+        <tr><td>惊讶</td><td>离调、跳跃、尖锐</td><td>V 0.60 / A 0.52（收敛刺激）</td></tr>
+        <tr><td>恐惧</td><td>暗色、悬疑、不稳定</td><td>V 0.58 / A 0.32（给安全感）</td></tr>
+        <tr><td>平静</td><td>中速、通透</td><td>V 0.60 / A 0.46（维持）</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>2. 内容相似度（加权欧氏距离）</h3>
+    <pre class="formula">d(T, S) = √( w_V·(V_T − V_S)² + w_A·(A_T − A_S)² ) / √(w_V + w_A),   w_V = 1.0, w_A = 0.8
+sim(T, S) = 1 − d(T, S) ∈ [0, 1]
+效价权重更大：调式（大/小调）对情绪效价的影响比速度对唤醒度的影响更直接、更稳定。</pre>
+
+    <h3>3. 多样性重排：MMR</h3>
+    <p>纯按相似度排序容易给出 6 首几乎一样安静的歌。用 Maximal Marginal Relevance 在「相关」与「不重复」之间取平衡：</p>
+    <pre class="formula">MMR(S_i) = λ · score(S_i) − (1 − λ) · max_{S_j ∈ 已选} sim(S_i, S_j),   λ = 0.72
+每次挑 MMR 最大的进榜，再迭代——保证前 6 首既贴近目标情绪，又在 VA 平面上铺开。</pre>
+
+    <h3>4. 在线反馈学习（画像更新）</h3>
+    <pre class="formula">score = 0.78·sim(T, S) + 0.22·sim(Profile, S) + 0.09·feedback[S]
+点 ♡（喜欢）：Profile ← Profile + 0.35·(S − Profile)
+点 ⏭（跳过）：Profile ← Profile − 0.18·(S − Profile)
+画像权重随交互次数增长，最多占 22% 的影响，避免几首歌就把推荐带偏。</pre>
+    <p>画像、反馈记录与所选策略都写入 <code>localStorage</code>（键 <code>emotionMusic.profile.v1</code>），刷新或重开浏览器后继续生效，不必每次重新「认识」你。点「重置画像」清空画像与反馈记录并立刻重排推荐，所选策略作为界面偏好保留。</p>
+
+    <h3>5. 在线曲库（Audius 开放 API）</h3>
+    <ul class="bullets">
+      <li>按当前情绪的关键词检索（如 sad → <code>sad melancholy piano</code>），取前 4 首可流式播放的曲目。</li>
+      <li><b>关键词逐级退让</b>：Audius 的检索是多词「同时命中」语义，词越多命中越少——实测 <code>happy upbeat feel good</code> 返回 <b>0</b> 条，<code>happy upbeat</code> 返回 4 条。因此查询会从长到短逐级回退（4 词 → 3 词 → 2 词 → 1 词），累加去重，够 2 条即停。下表是七种情绪的实测命中数。</li>
+      <li>在线曲目没有本地文件，先用「关键词 → VA 先验」粗排；<b>用户点播后</b>，浏览器拉取音频流并用第三节的同一套算法做真实旋律分析，VA 与匹配度随即刷新（界面标注「VA 先验」表示尚未分析）。</li>
+      <li>在线结果与本地曲库<b>混在同一个候选池</b>里参与 MMR 排序，不搞两套逻辑。</li>
+    </ul>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>情绪</th><th>查询串</th><th>命中</th><th>耗时</th><th>首条结果</th></tr></thead>
+      <tbody>
+        <tr><td>开心</td><td><code>happy upbeat feel good</code></td><td>4</td><td>2143 ms</td><td>Stigma</td></tr>
+        <tr><td>悲伤</td><td><code>sad melancholy piano</code></td><td>4</td><td>651 ms</td><td>Maudlin Ballad</td></tr>
+        <tr><td>愤怒</td><td><code>aggressive intense rock</code></td><td>3</td><td>661 ms</td><td>Wrecking Machine</td></tr>
+        <tr><td>惊讶</td><td><code>surprise electronic experimental</code></td><td>4</td><td>1246 ms</td><td>Skate</td></tr>
+        <tr><td>平静</td><td><code>calm chill ambient</code></td><td>4</td><td>733 ms</td><td>Spa Meditation</td></tr>
+        <tr><td>恐惧</td><td><code>dark tense cinematic</code></td><td>4</td><td>601 ms</td><td>Underground Shadows</td></tr>
+        <tr><td>厌恶</td><td><code>quirky dissonant weird</code></td><td>4</td><td>1163 ms</td><td>Quirky (demo)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">改造前「开心」和「厌恶」两个情绪是 <b>0 条</b>（关键词太长，四个词同时命中在 Audius 上几乎不存在），退让后 7/7 都有结果。耗时差异来自回退层数：一次命中的情绪约 0.6 s，退让三层的约 2 s；结果按会话内 URL 缓存，重复点按不再付这份开销。流地址实测 <code>Range: bytes=0-1023</code> 返回 <code>206 audio/mpeg</code>，可直接喂给 <code>&lt;audio&gt;</code>。</p>
+  </article>
+
+  <!-- 性能实测 -->
+  <article class="doc-card" id="doc-perf">
+    <h2>五、性能与实测数据</h2>
+
+    <h3>1. 本地曲库旋律分析精度（12 首标注曲目）</h3>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>指标</th><th>结果</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>BPM 平均相对误差</td><td><b>0.1 %</b></td><td>12/12 首落在 ±1 BPM 内（倍频消歧生效前后分别为 36 % 和 0.1 %）</td></tr>
+        <tr><td>调式判定准确率</td><td><b>11 / 12</b></td><td>唯一错判的是刻意写成半音化/离调的「静电惊雷」，属预期内</td></tr>
+        <tr><td>单曲分析耗时</td><td>92 – 236 ms</td><td>25–50 秒曲目，单线程 JS，含解码后重采样</td></tr>
+        <tr><td>整首上传分析</td><td><b>472 ms</b></td><td>8.4 MB / 199 秒 WAV，只取前 90 秒统计，端到端（含解码 + 落盘）816 ms</td></tr>
+        <tr><td>缓存命中</td><td>≈ 0 ms</td><td>分析结果写入 localStorage，二次进入直接读取</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>2. 人脸识别耗时</h3>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>环节</th><th>WebGL</th><th>CPU 回退</th></tr></thead>
+      <tbody>
+        <tr><td>TinyFaceDetector（416 / 320 / 224）</td><td>15–35 ms</td><td>200–600 ms</td></tr>
+        <tr><td>68 关键点</td><td>3–8 ms</td><td>60–150 ms</td></tr>
+        <tr><td>表情分类</td><td>&lt; 5 ms</td><td>20–50 ms</td></tr>
+        <tr><td>整帧合计</td><td>20–60 ms</td><td>300–800 ms（输入降为 224）</td></tr>
+      </tbody>
+    </table></div>
+
+    <p><b>识别档位选择的实测依据</b>（CPU 后端，15 张演示人脸，同一套融合与平滑参数，只改检测输入尺寸）：</p>
+    <div class="table-wrap"><table class="doc-table">
+      <thead><tr><th>档位</th><th>输入尺寸</th><th>检出</th><th>标签正确</th><th>平均单帧</th><th>平均置信度</th></tr></thead>
+      <tbody>
+        <tr><td>高精度</td><td>320</td><td>13 / 15</td><td>12 / 15</td><td>1291 ms</td><td>0.68</td></tr>
+        <tr><td><b>均衡</b></td><td><b>256</b></td><td><b>14 / 15</b></td><td><b>12 / 15</b></td><td><b>954 ms</b></td><td><b>0.73</b></td></tr>
+        <tr><td>快速</td><td>192</td><td>11 / 15</td><td>10 / 15</td><td>611 ms</td><td>0.59</td></tr>
+      </tbody>
+    </table></div>
+    <p>结论有两处反直觉。其一，<b>输入越大并不越准</b>：320 的检出（13）反而少于 256（14）——TinyFaceDetector 的 anchor 只覆盖一定的人脸尺度区间，把本就占满画面的脸再放大，反而掉出可检出范围。其二，<b>没有放宽检测阈值</b>：把 <code>scoreThreshold</code> 从 0.4 降到 0.35 确实能把最后一张补齐，但那一张会被高置信度错判成「开心」，对一个主打准确率的系统来说，给错答案比明确说「未检出」更伤可信度，所以保留 0.4。纯 CPU 环境因此默认「均衡」，比「高精度」快 26%、检出还多一张。档位选择会记住，下次进来沿用。</p>
+
+    <h3>3. 素材与体积</h3>
+    <ul class="bullets">
+      <li>识别模型权重：193 KB + 77 KB + 329 KB ≈ <b>0.6 MB</b>（随项目本地分发，断网可用）。</li>
+      <li>本地曲库：12 首 22050 Hz 单声道 WAV，共约 16 MB。</li>
+      <li>演示人脸：15 张 800px JPEG，共 1.8 MB。</li>
+    </ul>
+
+    <h3>4. 目录结构</h3>
+    <pre class="formula">emoMusic20261028/
+├─ index.html            页面骨架 + 使用/算法说明
+├─ css/style.css         深色 UI
+├─ js/app.js             Vue 3 应用（采集、识别、推荐、播放）
+├─ js/face-engine.js     人脸情绪识别引擎（检测/关键点/分类/融合/平滑）
+├─ js/music-engine.js    旋律曲调情绪识别（STFT/通量/ACF/色度/质心 → VA）
+├─ js/dsp.js             FFT、加窗、重采样等底层
+├─ js/recommender.js     目标点、加权距离、MMR、画像更新
+├─ js/upload-store.js    用户上传曲目的 IndexedDB 持久化（存 Blob，非 base64）
+├─ js/online.js          Audius 在线曲库接入
+├─ js/emotions.js        情绪常量与 VA 映射表
+├─ models/               face-api 模型权重（本地）
+├─ songs/                12 首本地曲目 + tracks.json
+├─ faces/                15 张演示人脸 + manifest.json
+└─ tools/                曲库合成、算法标定与离线测试脚本</pre>
+  </article>
+</section>
+
+<footer class="site-footer">
+  <span>Vue 3 · face-api.js(TinyFaceDetector + FaceExpressionNet) · 自研 DSP 音频分析</span>
+  <span>所有画面与音频均在本机浏览器内处理，不上传服务器</span>
+</footer>
+
+<script src="vendor/vue.global.prod.js"></script>
+<script src="vendor/face-api.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

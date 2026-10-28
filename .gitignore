@@ -1,0 +1,9 @@
+# 本地调试与构建产物
+.tmp/
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 测试时从在线曲库抓取的临时音频（不属于 12 首本地曲库，tracks.json 未引用）
+songs/M500003dqhvW2oGpve.mp3

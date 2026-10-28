@@ -1,0 +1,446 @@
+[
+  {
+    "id": "t01",
+    "emo": "happy",
+    "features": {
+      "bpmN": 0.6650916545112403,
+      "brightN": 0.2990748294542234,
+      "energyN": 0.5939896134597198,
+      "onsetN": 0.11342625689567512,
+      "modeN": 0.7292276189124989,
+      "tonalityN": 0.8595480174278723,
+      "highN": 0.06641099701817227
+    },
+    "raw": {
+      "bpm": 123.8,
+      "tempoConfidence": 0.637,
+      "onsetDensity": 1.05,
+      "centroidHz": 1518,
+      "rmsDb": -16.6,
+      "dynDb": 5.5,
+      "highRatio": 0.043,
+      "lowRatio": 0.706,
+      "modeScore": 0.115,
+      "tonality": 0.86,
+      "key": "C",
+      "mode": "major"
+    },
+    "va": {
+      "valence": 0.6491308569274723,
+      "arousal": 0.7582326748344019
+    },
+    "truthVa": [
+      0.88,
+      0.78
+    ],
+    "truthBpm": 124,
+    "truthMode": "major"
+  },
+  {
+    "id": "t02",
+    "emo": "happy",
+    "features": {
+      "bpmN": 0.7082265055136322,
+      "brightN": 0.3036920326042236,
+      "energyN": 0.6930617599590335,
+      "onsetN": 0.37173913043478257,
+      "modeN": 0.825000134268014,
+      "tonalityN": 0.9296113743706901,
+      "highN": 0.05712670978670526
+    },
+    "raw": {
+      "bpm": 128.2,
+      "tempoConfidence": 1,
+      "onsetDensity": 2.09,
+      "centroidHz": 1529,
+      "rmsDb": -14,
+      "dynDb": 4.9,
+      "highRatio": 0.04,
+      "lowRatio": 0.444,
+      "modeScore": 0.163,
+      "tonality": 0.93,
+      "key": "G",
+      "mode": "major"
+    },
+    "va": {
+      "valence": 0.7424070314069483,
+      "arousal": 0.862427282059144
+    },
+    "truthVa": [
+      0.85,
+      0.93
+    ],
+    "truthBpm": 128,
+    "truthMode": "major"
+  },
+  {
+    "id": "t03",
+    "emo": "sad",
+    "features": {
+      "bpmN": 0.09871930737083434,
+      "brightN": 0,
+      "energyN": 0.5065870016286556,
+      "onsetN": 0,
+      "modeN": 0.20901273282116617,
+      "tonalityN": 0.8462023796580133,
+      "highN": 0
+    },
+    "raw": {
+      "bpm": 66.1,
+      "tempoConfidence": 0.846,
+      "onsetDensity": 0.29,
+      "centroidHz": 619,
+      "rmsDb": -18.8,
+      "dynDb": 5.1,
+      "highRatio": 0.003,
+      "lowRatio": 0.69,
+      "modeScore": -0.145,
+      "tonality": 0.846,
+      "key": "Am",
+      "mode": "minor"
+    },
+    "va": {
+      "valence": 0.1590687047633314,
+      "arousal": 0.2271611363426951
+    },
+    "truthVa": [
+      0.16,
+      0.24
+    ],
+    "truthBpm": 66,
+    "truthMode": "minor"
+  },
+  {
+    "id": "t04",
+    "emo": "sad",
+    "features": {
+      "bpmN": 0.01932815431114871,
+      "brightN": 0,
+      "energyN": 0.5180282567888332,
+      "onsetN": 0,
+      "modeN": 0.1837973107851243,
+      "tonalityN": 0.908726272827866,
+      "highN": 0
+    },
+    "raw": {
+      "bpm": 58,
+      "tempoConfidence": 0.975,
+      "onsetDensity": 0.6,
+      "centroidHz": 245,
+      "rmsDb": -18.5,
+      "dynDb": 6.4,
+      "highRatio": 0,
+      "lowRatio": 0.95,
+      "modeScore": -0.158,
+      "tonality": 0.909,
+      "key": "Dm",
+      "mode": "minor"
+    },
+    "va": {
+      "valence": 0.14206585190459026,
+      "arousal": 0.1671007697434949
+    },
+    "truthVa": [
+      0.1,
+      0.16
+    ],
+    "truthBpm": 58,
+    "truthMode": "minor"
+  },
+  {
+    "id": "t05",
+    "emo": "angry",
+    "features": {
+      "bpmN": 0.9408015979174389,
+      "brightN": 0.2833204871030197,
+      "energyN": 0.837369540867649,
+      "onsetN": 0.2870776140704362,
+      "modeN": 0.2879992947528156,
+      "tonalityN": 0.8159219283476935,
+      "highN": 0.06768945606802704
+    },
+    "raw": {
+      "bpm": 152,
+      "tempoConfidence": 1,
+      "onsetDensity": 1.75,
+      "centroidHz": 1480,
+      "rmsDb": -10.2,
+      "dynDb": 3.2,
+      "highRatio": 0.044,
+      "lowRatio": 0.843,
+      "modeScore": -0.106,
+      "tonality": 0.816,
+      "key": "Em",
+      "mode": "minor"
+    },
+    "va": {
+      "valence": 0.37252715318491963,
+      "arousal": 1
+    },
+    "truthVa": [
+      0.14,
+      0.95
+    ],
+    "truthBpm": 152,
+    "truthMode": "minor"
+  },
+  {
+    "id": "t06",
+    "emo": "angry",
+    "features": {
+      "bpmN": 0.862173027557231,
+      "brightN": 0.2600674030326936,
+      "energyN": 0.8270966761419799,
+      "onsetN": 0,
+      "modeN": 0.21191881369749765,
+      "tonalityN": 0.703989315502954,
+      "highN": 0.04373305018310356
+    },
+    "raw": {
+      "bpm": 143.9,
+      "tempoConfidence": 1,
+      "onsetDensity": 0.39,
+      "centroidHz": 1424,
+      "rmsDb": -10.5,
+      "dynDb": 2.6,
+      "highRatio": 0.035,
+      "lowRatio": 0.896,
+      "modeScore": -0.144,
+      "tonality": 0.704,
+      "key": "Fm",
+      "mode": "minor"
+    },
+    "va": {
+      "valence": 0.2821517337477793,
+      "arousal": 0.9024371715077973
+    },
+    "truthVa": [
+      0.2,
+      0.88
+    ],
+    "truthBpm": 144,
+    "truthMode": "minor"
+  },
+  {
+    "id": "t07",
+    "emo": "surprised",
+    "features": {
+      "bpmN": 0.8022398657049025,
+      "brightN": 0.30583795786199336,
+      "energyN": 0.713779142946461,
+      "onsetN": 0.22436491665923883,
+      "modeN": 0.29497179770637116,
+      "tonalityN": 0.5907029837219998,
+      "highN": 0.08657076567473698
+    },
+    "raw": {
+      "bpm": 137.8,
+      "tempoConfidence": 0.904,
+      "onsetDensity": 1.5,
+      "centroidHz": 1534,
+      "rmsDb": -13.4,
+      "dynDb": 4.5,
+      "highRatio": 0.05,
+      "lowRatio": 0.669,
+      "modeScore": -0.103,
+      "tonality": 0.591,
+      "key": "Cm",
+      "mode": "minor"
+    },
+    "va": {
+      "valence": 0.3709666056897396,
+      "arousal": 0.8698893931667002
+    },
+    "truthVa": [
+      0.5,
+      0.88
+    ],
+    "truthBpm": 138,
+    "truthMode": "major"
+  },
+  {
+    "id": "t08",
+    "emo": "neutral",
+    "features": {
+      "bpmN": 0.15665546665252908,
+      "brightN": 0.02473996047027877,
+      "energyN": 0.49673533703105466,
+      "onsetN": 0.02901254613537821,
+      "modeN": 0.8522365550875033,
+      "tonalityN": 0.9450173279497098,
+      "highN": 0
+    },
+    "raw": {
+      "bpm": 72,
+      "tempoConfidence": 1,
+      "onsetDensity": 0.72,
+      "centroidHz": 859,
+      "rmsDb": -19.1,
+      "dynDb": 5.3,
+      "highRatio": 0.016,
+      "lowRatio": 0.414,
+      "modeScore": 0.176,
+      "tonality": 0.945,
+      "key": "F",
+      "mode": "major"
+    },
+    "va": {
+      "valence": 0.6052263682768859,
+      "arousal": 0.3286137432065248
+    },
+    "truthVa": [
+      0.55,
+      0.38
+    ],
+    "truthBpm": 72,
+    "truthMode": "major"
+  },
+  {
+    "id": "t09",
+    "emo": "neutral",
+    "features": {
+      "bpmN": 0.07903174679913944,
+      "brightN": 0,
+      "energyN": 0.4618158324478196,
+      "onsetN": 0.09175848272755,
+      "modeN": 1,
+      "tonalityN": 0.9724759444062353,
+      "highN": 0
+    },
+    "raw": {
+      "bpm": 64.1,
+      "tempoConfidence": 1,
+      "onsetDensity": 0.97,
+      "centroidHz": 437,
+      "rmsDb": -20,
+      "dynDb": 5.7,
+      "highRatio": 0,
+      "lowRatio": 0.618,
+      "modeScore": 0.325,
+      "tonality": 0.972,
+      "key": "C",
+      "mode": "major"
+    },
+    "va": {
+      "valence": 0.6985247339185434,
+      "arousal": 0.2810756952635845
+    },
+    "truthVa": [
+      0.62,
+      0.2
+    ],
+    "truthBpm": 64,
+    "truthMode": "major"
+  },
+  {
+    "id": "t10",
+    "emo": "fearful",
+    "features": {
+      "bpmN": 0.38734285513836897,
+      "brightN": 0,
+      "energyN": 0.5406590983302025,
+      "onsetN": 0,
+      "modeN": 0.16097761535187094,
+      "tonalityN": 0.5784533656790705,
+      "highN": 0
+    },
+    "raw": {
+      "bpm": 95.5,
+      "tempoConfidence": 0.25,
+      "onsetDensity": 0.39,
+      "centroidHz": 574,
+      "rmsDb": -17.9,
+      "dynDb": 5,
+      "highRatio": 0.004,
+      "lowRatio": 0.88,
+      "modeScore": -0.17,
+      "tonality": 0.578,
+      "key": "Bm",
+      "mode": "minor"
+    },
+    "va": {
+      "valence": 0.12798410866870638,
+      "arousal": 0.45092629616560553
+    },
+    "truthVa": [
+      0.22,
+      0.55
+    ],
+    "truthBpm": 96,
+    "truthMode": "minor"
+  },
+  {
+    "id": "t11",
+    "emo": "disgusted",
+    "features": {
+      "bpmN": 0.5104882963720252,
+      "brightN": 0.33435368632073315,
+      "energyN": 0.6077394821289505,
+      "onsetN": 0.08926420310371538,
+      "modeN": 0.2628537852877133,
+      "tonalityN": 0.7313897439376816,
+      "highN": 0.11658621263168258
+    },
+    "raw": {
+      "bpm": 108.1,
+      "tempoConfidence": 0.506,
+      "onsetDensity": 0.96,
+      "centroidHz": 1602,
+      "rmsDb": -16.2,
+      "dynDb": 6,
+      "highRatio": 0.061,
+      "lowRatio": 0.728,
+      "modeScore": -0.119,
+      "tonality": 0.731,
+      "key": "Em",
+      "mode": "minor"
+    },
+    "va": {
+      "valence": 0.34386782678859507,
+      "arousal": 0.5993690150694219
+    },
+    "truthVa": [
+      0.26,
+      0.55
+    ],
+    "truthBpm": 108,
+    "truthMode": "minor"
+  },
+  {
+    "id": "t12",
+    "emo": "happy",
+    "features": {
+      "bpmN": 0.6081742151285949,
+      "brightN": 0.31321215555751003,
+      "energyN": 0.6201529612619278,
+      "onsetN": 0.11097335367829944,
+      "modeN": 1,
+      "tonalityN": 0.8639905762194665,
+      "highN": 0.07233198606716787
+    },
+    "raw": {
+      "bpm": 118,
+      "tempoConfidence": 0.671,
+      "onsetDensity": 1.04,
+      "centroidHz": 1552,
+      "rmsDb": -15.9,
+      "dynDb": 5.4,
+      "highRatio": 0.045,
+      "lowRatio": 0.669,
+      "modeScore": 0.316,
+      "tonality": 0.864,
+      "key": "D",
+      "mode": "major"
+    },
+    "va": {
+      "valence": 0.835433337272019,
+      "arousal": 0.7417798878547502
+    },
+    "truthVa": [
+      0.8,
+      0.72
+    ],
+    "truthBpm": 118,
+    "truthMode": "major"
+  }
+]

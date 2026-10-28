@@ -1,0 +1,50 @@
+{
+  "note": "演示用人脸照片：AI 生成，5 类基本情绪 × 3 张，用于快速验证识别与推荐链路。",
+  "groups": [
+    {
+      "key": "happy",
+      "cn": "开心",
+      "items": [
+        { "file": "faces/happy_1.jpg", "caption": "女 · 26 · 张口大笑" },
+        { "file": "faces/happy_2.jpg", "caption": "男 · 32 · 露齿笑" },
+        { "file": "faces/happy_3.jpg", "caption": "女 · 21 · 眯眼笑" }
+      ]
+    },
+    {
+      "key": "sad",
+      "cn": "悲伤",
+      "items": [
+        { "file": "faces/sad_1.jpg", "caption": "女 · 45 · 泪光低垂" },
+        { "file": "faces/sad_2.jpg", "caption": "男 · 19 · 嘴角下垂" },
+        { "file": "faces/sad_3.jpg", "caption": "男 · 30 · 眉内侧上扬" }
+      ]
+    },
+    {
+      "key": "angry",
+      "cn": "愤怒",
+      "items": [
+        { "file": "faces/angry_1.jpg", "caption": "男 · 40 · 皱眉怒视" },
+        { "file": "faces/angry_2.jpg", "caption": "女 · 25 · 张口怒斥" },
+        { "file": "faces/angry_3.jpg", "caption": "男 · 35 · 抿唇压抑" }
+      ]
+    },
+    {
+      "key": "surprised",
+      "cn": "惊讶",
+      "items": [
+        { "file": "faces/surprised_1.jpg", "caption": "男 · 50 · 张口愕然" },
+        { "file": "faces/surprised_2.jpg", "caption": "男 · 17 · 双眼圆睁" },
+        { "file": "faces/surprised_3.jpg", "caption": "女 · 22 · 挑眉 O 型嘴" }
+      ]
+    },
+    {
+      "key": "neutral",
+      "cn": "平静",
+      "items": [
+        { "file": "faces/neutral_1.jpg", "caption": "女 · 28 · 面无波澜" },
+        { "file": "faces/neutral_2.jpg", "caption": "男 · 60 · 放松中性" },
+        { "file": "faces/neutral_3.jpg", "caption": "女 · 40 · 平静注视" }
+      ]
+    }
+  ]
+}

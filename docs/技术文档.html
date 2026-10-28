@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>情绪音乐推荐系统 · 技术文档</title>
+<style>
+  :root {
+    --ink: #1a1f2b;
+    --ink-2: #3c4759;
+    --ink-3: #6b7488;
+    --line: #d8deea;
+    --accent: #3d3a8c;
+    --accent-2: #0e7c86;
+    --head-bg: #eef1fa;
+    --code-bg: #f4f6fb;
+  }
+  body {
+    font-family: "宋体", "SimSun", serif;
+    font-size: 10.5pt;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  h1 { font-family: "黑体", "SimHei", sans-serif; font-size: 26pt; color: var(--accent); text-align: center; margin: 0 0 6pt 0; }
+  h2 {
+    font-family: "黑体", "SimHei", sans-serif;
+    font-size: 15pt;
+    color: var(--accent);
+    margin: 20pt 0 8pt 0;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #c8cfe6;
+  }
+  h3 { font-family: "黑体", "SimHei", sans-serif; font-size: 12pt; color: var(--ink); margin: 14pt 0 6pt 0; }
+  h4 { font-family: "黑体", "SimHei", sans-serif; font-size: 10.5pt; color: var(--ink-2); margin: 10pt 0 4pt 0; }
+  p { margin: 0 0 7pt 0; text-align: justify; }
+  .lead { font-size: 10.5pt; color: var(--ink-2); }
+  .subtitle { font-size: 12pt; color: var(--ink-2); text-align: center; margin: 0 0 4pt 0; }
+  .eyebrow { font-size: 10pt; color: var(--accent-2); text-align: center; margin: 0 0 10pt 0; }
+  .cover-meta { font-size: 10pt; color: var(--ink-3); text-align: center; margin: 2pt 0; }
+  .cover-rule { margin: 14pt 0; }
+  .center { text-align: center; }
+  .muted { color: var(--ink-3); }
+  b, strong { color: #10141c; }
+  ul, ol { margin: 4pt 0 8pt 0; padding-left: 20pt; }
+  li { margin-bottom: 3pt; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 6pt 0 10pt 0; }
+  th {
+    background-color: #eef1fa;
+    color: #2b3350;
+    font-family: "黑体", "SimHei", sans-serif;
+    font-weight: normal;
+    font-size: 9pt;
+    text-align: left;
+    border: 0.5pt solid #c9d1e4;
+    padding: 4pt 5pt;
+  }
+  td {
+    border: 0.5pt solid #d8deea;
+    padding: 4pt 5pt;
+    vertical-align: top;
+    text-align: left;
+  }
+  .code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 8.1pt;
+    line-height: 1.35;
+    color: #23304a;
+    margin: 0;
+    text-align: left;
+  }
+  .code-first { margin-top: 6pt; }
+  .code-last { margin-bottom: 8pt; }
+  .cap { font-size: 9pt; color: var(--ink-3); text-align: center; margin: 2pt 0 10pt 0; }
+  .toc-title { font-family: "黑体", "SimHei", sans-serif; font-size: 15pt; color: var(--accent); text-align: center; margin: 0 0 12pt 0; }
+  .doc-toc ol { list-style: none; padding-left: 0; }
+  .doc-toc li { margin-bottom: 5pt; font-size: 10.5pt; }
+  @page {
+    @top-right { content: "情绪音乐推荐系统 · 技术文档"; }
+    @bottom-center { content: counter(page) " / " counter(pages); }
+  }
+  @page cover {
+    @top-right { content: none; }
+    @bottom-center { content: none; }
+  }
+  section[role="cover"] { page: cover; }
+</style>
+</head>
+<body>
+
+<!-- ===================== 封面 ===================== -->
+<section role="cover">
+  <p class="eyebrow">技 术 文 档</p>
+  <h1>情绪音乐推荐系统</h1>
+  <p class="subtitle">人脸表情识别 × 旋律特征分析 → 情绪一致的音乐推荐</p>
+  <p class="cover-meta">Vue 3 · face-api.js（TinyFaceDetector + FaceExpressionNet）· 自研纯 JS DSP</p>
+  <p class="cover-meta">全部推理与分析在浏览器本地完成，人脸画面与音频文件不上传任何服务器</p>
+
+  <div class="cover-rule" data-component="divider"></div>
+
+  <table>
+    <thead>
+      <tr><th style="width:26%">关键指标</th><th style="width:26%">结果</th><th>测量条件</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>BPM 平均相对误差</td><td><b>0.1 %</b></td><td>12 首标注曲目，倍频消歧开启后</td></tr>
+      <tr><td>调式判定准确率</td><td><b>11 / 12</b></td><td>唯一错判为刻意半音化的曲目</td></tr>
+      <tr><td>单曲旋律分析耗时</td><td><b>92 – 236 ms</b></td><td>25–50 秒曲目，单线程 JS</td></tr>
+      <tr><td>人脸识别单帧</td><td><b>20 – 60 ms</b></td><td>WebGL 后端；CPU 回退 300–800 ms</td></tr>
+      <tr><td>在线检索命中</td><td><b>7 / 7</b></td><td>七种情绪，关键词逐级退让后</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 0-1　系统关键指标一览</p>
+
+  <p class="muted center">2026 年 10 月</p>
+</section>
+
+<!-- ===================== 目录 ===================== -->
+<section role="body">
+  <p class="toc-title">目　录</p>
+  <nav class="doc-toc">
+    <ol>
+      <li><a href="#ch1">一、系统概述与使用</a></li>
+      <li><a href="#ch2">二、人脸情绪识别算法</a></li>
+      <li><a href="#ch3">三、旋律曲调情绪识别算法</a></li>
+      <li><a href="#ch4">四、推荐算法与策略</a></li>
+      <li><a href="#ch5">五、实测数据与工程结论</a></li>
+      <li><a href="#ch6">六、复现与验证</a></li>
+      <li><a href="#ch7">附录　术语与已知限制</a></li>
+    </ol>
+  </nav>
+
+<!-- ===================== 第一章 ===================== -->
+  <h2 id="ch1">一、系统概述与使用</h2>
+  <p class="lead">本系统是一个完全运行在浏览器内的「人脸情绪 → 音乐推荐」应用：打开摄像头或选一张照片，前端完成人脸检测、表情分类、情绪坐标计算，再从本地曲库与在线曲库中挑出情绪匹配的曲目。整条链路没有服务端，模型权重、曲库、算法脚本随项目一起分发，断网可用。</p>
+
+  <h3>1.1　设计目标与取舍</h3>
+  <ul>
+    <li><b>算法可解释</b>：不用一个黑箱模型包打天下，而是把「检测 → 关键点 → 分类 → 融合 → 平滑」与「STFT → 起音 → 测速 → 调式」每一步都摊开，界面里能看到 7 类概率、CNN 与几何双通道的对比、VA 散点坐标。</li>
+    <li><b>数据不落地</b>：人脸画面、上传的音频只在浏览器内存与 IndexedDB 中存在，没有一处上传请求。</li>
+    <li><b>指标可复现</b>：所有性能数字都由项目内脚本实测产出，标注曲目的 BPM、调式、情绪标签在合成时即已知，可逐项核对。</li>
+  </ul>
+
+  <h3>1.2　四种人脸输入方式</h3>
+  <table>
+    <thead>
+      <tr><th style="width:15%">方式</th><th style="width:33%">操作步骤</th><th style="width:24%">适用场景</th><th>注意</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>上传图片</td><td>点「选择本地图片」，或直接点下方演示人脸库任一张</td><td>评测、演示、单次识别</td><td>单人正脸，光照均匀，脸占画面 1/4 以上</td></tr>
+      <tr><td>打开视频</td><td>点「打开视频文件」选择本地 mp4/webm，自动逐帧识别</td><td>分析影视片段里的人物情绪变化</td><td>识别频率约 12 FPS，可随时暂停</td></tr>
+      <tr><td>实时摄像头</td><td>点「开启摄像头」并授权，正脸对准镜头</td><td>实时互动、情绪跟随切歌</td><td>需 localhost 或 https 环境才能调用摄像头</td></tr>
+      <tr><td>屏幕视频</td><td>点「共享屏幕 / 窗口」，选择正在播放视频的窗口</td><td>演示「看剧时自动配乐」</td><td>共享整个屏幕时，人脸需占画面较大比例</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 1-1　四种输入源及其限制</p>
+
+  <h3>1.3　一次完整推荐流程</h3>
+  <ol>
+    <li><b>识别人脸情绪</b>：画面中出现人脸后，右侧实时显示 7 类情绪概率与二维情绪坐标（效价 V / 唤醒 A）。</li>
+    <li><b>分析本地曲库</b>：首次进入自动分析 12 首本地曲目（每首 0.1–0.25 秒），结果写入 localStorage 缓存，下次秒开。</li>
+    <li><b>选择推荐策略</b>：情绪共鸣 / 情绪调节 / 混合策略，切换后推荐列表立即重排。</li>
+    <li><b>播放与反馈</b>：点「播放」试听；点 ♡ 喜欢或 ⏭ 跳过，即时更新情绪画像并影响后续排序。画像、反馈与所选策略都持久化，刷新后仍在；点「重置画像」可从零开始。</li>
+    <li><b>补充在线曲库</b>：点「搜索在线曲目」按当前情绪关键词检索 Audius 开放曲库，与本地曲目混入同一候选池。</li>
+  </ol>
+
+  <h3>1.4　使用自己的歌曲</h3>
+  <table>
+    <thead>
+      <tr><th style="width:14%">要做的事</th><th style="width:40%">做法</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>添加歌曲</td><td>点「上传我的歌曲」选文件，或把音频直接拖进「我的歌曲」区域</td><td>支持 mp3 / wav / m4a / aac / flac / ogg，可一次多选，逐首串行分析</td></tr>
+      <tr><td>自动分析</td><td>上传后立即用同一套本地 DSP 算 BPM、调式、VA 坐标</td><td>只取前 90 秒做统计（实测 8.4 MB / 199 秒的曲目 472 ms），播放时长仍是完整曲目</td></tr>
+      <tr><td>存在哪里</td><td>音频 Blob 写入浏览器 IndexedDB，刷新 / 重开浏览器仍在</td><td>音频不离开本机；隐私模式下只对当前页面有效</td></tr>
+      <tr><td>参与推荐</td><td>与内置 12 首同等进入候选池，一起做加权距离与 MMR 重排</td><td>列表中以「我的」徽标区分</td></tr>
+      <tr><td>删除</td><td>点曲目右侧「移除」</td><td>同时清理 IndexedDB 记录与内存 objectURL，不留残留</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 1-2　本地曲目上传的行为约定</p>
+
+  <h3>1.5　界面速览</h3>
+  <ul>
+    <li><b>① 采集人脸</b>：四种输入源与 15 张演示人脸（5 种情绪 × 3 张）。</li>
+    <li><b>② 情绪识别</b>：主导情绪、置信度、7 类概率条、CNN 与几何双通道对比。顶栏右侧可切<b>识别档位</b>（高精度 / 均衡 / 快速）。</li>
+    <li><b>③ 情绪推荐</b>：VA 散点图、目标坐标、推荐列表与匹配度。</li>
+    <li><b>底部播放器</b>：进度条、喜欢、跳过。</li>
+  </ul>
+
+<!-- ===================== 第二章 ===================== -->
+  <h2 id="ch2">二、人脸情绪识别算法</h2>
+  <p class="lead">采用「检测 → 关键点 → 表情分类 → 晚期融合 → 时序平滑」的五段式流水线，全部本地推理，WebGL 下单帧 20–60 ms。</p>
+
+  <h3>2.1　流水线总览</h3>
+  <p class="code code-first">输入帧</p>
+<p class="code">&#160;&#160;│</p>
+<p class="code">&#160;&#160;├─①&#160;TinyFaceDetector（SSD&#160;单阶段检测，输入可切&#160;416&#160;/&#160;320&#160;/&#160;224）</p>
+<p class="code">&#160;&#160;│&#160;&#160;&#160;&#160;&#160;└─▶&#160;人脸框&#160;bbox&#160;+&#160;检测置信度（NMS&#160;后取最高分）</p>
+<p class="code">&#160;&#160;│</p>
+<p class="code">&#160;&#160;├─②&#160;68&#160;点关键点回归（tiny&#160;landmark）</p>
+<p class="code">&#160;&#160;│&#160;&#160;&#160;&#160;&#160;└─▶&#160;6&#160;维几何特征：EAR&#160;/&#160;嘴角上扬&#160;/&#160;眉高比&#160;/&#160;眉心距&#160;/&#160;张口度&#160;/&#160;嘴宽比</p>
+<p class="code">&#160;&#160;│</p>
+<p class="code">&#160;&#160;├─③&#160;FaceExpressionNet（mini-Xception）</p>
+<p class="code">&#160;&#160;│     └─▶ 7 类 softmax：neutral happy sad angry fearful disgusted surprised</p>
+<p class="code">&#160;&#160;│</p>
+<p class="code">&#160;&#160;├─④&#160;晚期融合：P&#160;=&#160;0.78·P_cnn&#160;+&#160;0.22·P_geo</p>
+<p class="code">&#160;&#160;│</p>
+<p class="code code-last">&#160;&#160;└─⑤&#160;EMA&#160;平滑&#160;+&#160;主导类滞回&#160;──▶&#160;稳定情绪标签&#160;+&#160;置信度</p>
+
+  <h3>2.2　人脸检测：TinyFaceDetector</h3>
+  <p>单阶段检测器（Single Shot MultiBox Detector）。骨干网络用<b>深度可分离卷积</b>（depthwise + pointwise）替代普通卷积，把参数量与乘加次数压到 1/8 左右；在多个尺度特征图上以 anchor 方式直接回归「人脸框偏移 (dx, dy, dw, dh)」与「置信度」，最后做 NMS 去重。</p>
+  <p class="code code-first">损失函数（训练期）: L = L_conf(cls, c) + λ·L_box(t, t*)      IoU 阈值 = 0.3，λ ≈ 2</p>
+<p class="code code-last">推理期: 输入缩放到 N×N → 前向 → 置信度 &gt; 阈值 的 anchor → NMS → 取最高分人脸</p>
+  <p>工程参数：<code>inputSize</code> 可切三档（WebGL：416 / 320 / 224，CPU：320 / 256 / 192）；<code>scoreThreshold</code> 取 WebGL 0.35、CPU 0.4（CPU 上调是因为低分辨率下弱证据更容易被放大成错判，理由见 5.3 节）；模型权重仅 193 KB。因为只在固定分辨率的特征图上做一次前向，检测延迟与画面内容无关，是<b>恒定 O(H·W·C)</b> 的卷积开销。</p>
+
+  <h3>2.3　68 点关键点与几何特征</h3>
+  <p>tiny landmark 网络在检测框内回归 68 个面部关键点，用于计算可解释的面部动作单元（AU）近似量，记为 6 维特征向量。</p>
+  <table>
+    <thead>
+      <tr><th style="width:20%">几何特征</th><th style="width:44%">定义</th><th>情绪含义</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>眼睛纵横比 EAR</td><td>EAR = (|p₂−p₆| + |p₃−p₅|) / (2|p₁−p₄|)</td><td>睁眼程度：惊讶 / 恐惧时显著增大</td></tr>
+      <tr><td>嘴角上扬 smile</td><td>s = (y<sub>唇中</sub> − y<sub>嘴角</sub>) / 瞳距</td><td>s &gt; 0 为嘴角上翘，开心的核心特征</td></tr>
+      <tr><td>眉高比 browHeight</td><td>(y<sub>眼上缘</sub> − y<sub>眉</sub>) / 瞳距</td><td>眉毛抬高：惊讶、恐惧（AU1+AU2）</td></tr>
+      <tr><td>眉心距 innerBrowGap</td><td>|p₂₁ − p₂₂| / 瞳距</td><td>皱眉收拢：愤怒、厌恶（AU4）</td></tr>
+      <tr><td>张口度 mouthOpen</td><td>|p₆₂ − p₆₆| / 瞳距</td><td>惊讶、呼喊；闭唇紧压则偏愤怒</td></tr>
+      <tr><td>嘴宽比 mouthWidth</td><td>|p₄₈ − p₅₄| / 瞳距</td><td>大笑时嘴角外拉（AU12）</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 2-1　六维几何特征定义与情绪含义</p>
+
+  <h3>2.4　表情分类：FaceExpressionNet</h3>
+  <p>在 FER 数据集训练的轻量卷积网络，采用 mini-Xception 结构：<b>深度可分离卷积 + 残差连接 + 全局平均池化</b>，最后 softmax 输出 7 类概率。模型仅 329 KB，输入 48×48 灰度人脸，单帧耗时小于 5 ms。</p>
+  <p class="code code-first">P_cnn&#160;=&#160;softmax(&#160;W&#160;·&#160;GAP(&#160;ResBlock(&#160;DepthwiseConv(x)&#160;)&#160;)&#160;+&#160;b&#160;)&#160;∈&#160;R⁷</p>
+<p class="code code-last">类别&#160;=&#160;{&#160;neutral,&#160;happy,&#160;sad,&#160;angry,&#160;fearful,&#160;disgusted,&#160;surprised&#160;}</p>
+
+  <h3>2.5　晚期融合：为什么还要几何规则</h3>
+  <p>CNN 在侧脸、逆光、口罩、遮挡时会系统性地偏向中性；几何特征虽然噪声大，但在正脸条件下对「笑」「皱眉」「张嘴」非常敏感且方向明确。因此取两者加权，得到最终概率分布：</p>
+  <p class="code code-first">P_fused[k]&#160;=&#160;0.78&#160;·&#160;P_cnn[k]&#160;+&#160;0.22&#160;·&#160;P_geo[k],&#160;&#160;&#160;k&#160;∈&#160;7&#160;类,&#160;&#160;&#160;Σ&#160;P_fused&#160;=&#160;1</p>
+<p class="code">&#160;</p>
+<p class="code">P_geo&#160;由可解释规则归一化得到，例如：</p>
+<p class="code">&#160;&#160;happy&#160;&#160;&#160;&#160;&#160;=&#160;0.62·smileN&#160;+&#160;0.24·mouthWidthN&#160;&#160;+&#160;0.14·(0.5&#160;+&#160;0.5·openN)</p>
+<p class="code">&#160;&#160;angry&#160;&#160;&#160;&#160;&#160;=&#160;0.52·knitN&#160;&#160;+&#160;0.28·pressN&#160;&#160;&#160;&#160;&#160;&#160;&#160;+&#160;0.20·(1&#160;−&#160;smileN)·knitN</p>
+<p class="code code-last">&#160;&#160;surprised&#160;=&#160;0.46·raiseN&#160;+&#160;0.32·wideN&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;+&#160;0.22·openN</p>
+
+  <h3>2.6　时序平滑与标签稳定</h3>
+  <p>逐帧独立分类会出现「开心 → 中性 → 开心」的抖动。用指数滑动平均（EMA）做低通滤波，再加主导类滞回：</p>
+  <p class="code code-first">S_t&#160;=&#160;α&#160;·&#160;P_fused,t&#160;+&#160;(1&#160;−&#160;α)&#160;·&#160;S_(t−1),&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;α&#160;=&#160;0.55</p>
+<p class="code code-last">切换主导类条件: S_t[k'] &gt; S_t[k_current] + 0.10            （滞回阈值，避免临界抖动）</p>
+  <p>检测失败（画面中无人脸）时，平滑状态会被清空而不是继续沿用旧值，避免「把上一张脸的余温算到下一张脸上」；切换识别档位同理，因为不同输入尺寸下的概率分布不可比。</p>
+
+  <h3>2.7　复杂度</h3>
+  <p class="code code-first">检测&#160;&#160;&#160;O(H·W·C·k²)&#160;&#160;&#160;≈&#160;常量（H·W&#160;由档位固定，与画面内容无关）</p>
+<p class="code">关键点&#160;O(N_pts&#160;·&#160;C)</p>
+<p class="code">分类&#160;&#160;&#160;O(C²&#160;·&#160;N_block)</p>
+<p class="code">整链单帧&#160;20–60&#160;ms（WebGL）/&#160;300–800&#160;ms（CPU&#160;回退，输入已降为&#160;224）</p>
+<p class="code code-last">12&#160;FPS&#160;采样下&#160;WebGL&#160;路径&#160;CPU&#160;占用&#160;&lt;&#160;30%</p>
+
+<!-- ===================== 第三章 ===================== -->
+  <h2 id="ch3">三、旋律曲调情绪识别算法</h2>
+  <p class="lead">对本地音频做纯信号处理，不依赖云端服务或预训练模型，提取「快慢、节奏、频率高低、调式」四类线索，映射到二维情绪平面。</p>
+
+  <h3>3.1　预处理</h3>
+  <ul>
+    <li>多声道下混为单声道：x[n] = (1/C)·Σ x_c[n]</li>
+    <li>线性插值重采样到 <b>11025 Hz</b>：与情绪相关的音色 / 节奏信息集中在 5 kHz 以内，降采样使 FFT 计算量降到 44.1 kHz 的 1/4。</li>
+  </ul>
+
+  <h3>3.2　短时傅里叶变换（STFT）</h3>
+  <p class="code code-first">X_t[k]&#160;=&#160;Σ_(n=0..N−1)&#160;x[t·H&#160;+&#160;n]&#160;·&#160;w[n]&#160;·&#160;e^(−j2πkn/N)</p>
+<p class="code">&#160;</p>
+<p class="code code-last">N = 2048（约 186 ms 窗长）  H = 256（约 23 ms 帧移）  w = 汉宁窗  频率分辨率 5.38 Hz</p>
+  <p>FFT 为手写的基-2 迭代实现（<code>js/dsp.js</code>），不引入任何数值库，保证断网与零依赖。</p>
+
+  <h3>3.3　节奏：对数谱通量起音检测 + 自相关测速</h3>
+  <p>先对每帧幅度谱做<b>尺度无关的对数压缩</b>，再取正向差分求和，得到起音强度包络——对弱起音敏感，且不会被响亮的持续声部淹没：</p>
+  <p class="code code-first">L_t[k]&#160;=&#160;ln(&#160;1&#160;+&#160;99·|X_t[k]|&#160;/&#160;max_k&#160;|X_t[k]|&#160;)</p>
+<p class="code">Δ_t&#160;&#160;&#160;&#160;=&#160;Σ_k&#160;max(&#160;0,&#160;L_t[k]&#160;−&#160;L_(t−1)[k]&#160;)&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;←&#160;谱通量</p>
+<p class="code code-last">e_t    = max( 0, Δ_t − 1.15·mean(Δ_(t−8..t)) )             ← 去局部均值后半波整流，再归一化</p>
+  <p>对包络做归一化自相关，峰位置即「拍周期」，再叠加三个工程技巧：</p>
+  <p class="code code-first">r(τ)&#160;=&#160;Σ_t&#160;e_t·e_(t+τ)&#160;/&#160;Σ_t&#160;e_t²&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;（τ&#160;为帧数）</p>
+<p class="code">候选&#160;BPM&#160;=&#160;60&#160;·&#160;f_env&#160;/&#160;τ,&#160;&#160;&#160;&#160;f_env&#160;=&#160;11025&#160;/&#160;256&#160;≈&#160;43.07&#160;Hz</p>
+<p class="code">&#160;</p>
+<p class="code">① 对数高斯节奏先验：w(bpm) = exp( −½·(log₂(bpm/112) / 0.9)² )   （节拍中心 ≈ 110–120 BPM）</p>
+<p class="code">② 抛物线插值细化：τ* = τ + ½·(y₋₁ − y₊₁) / (y₋₁ − 2y₀ + y₊₁)     （量化误差 3% → &lt;0.5%）</p>
+<p class="code">③ 倍频消歧：若 r(τ/2) ≥ 0.33·r(τ) 且对应 BPM ≤ 180，则把节奏层级上移到「拍」层</p>
+<p class="code code-last">&#160;&#160;&#160;4/4 里底鼓在 1、3 拍、军鼓在 2、4 拍，会让自相关在「两拍」处更强，这是最常见的倍频误判</p>
+  <p>第 ③ 步是精度关键：不做倍频消歧时 12 首标注曲目的 BPM 平均相对误差为 <b>36 %</b>，做完降到 <b>0.1 %</b>。</p>
+
+  <h3>3.4　调式：色度向量 × Krumhansl 调性轮廓</h3>
+  <p>只取 120–2000 Hz 的<b>谱局部峰</b>（避免低频鼓点与高频齿音污染），按对数频率折叠到 12 个音级得到色度向量，再与 Krumhansl-Kessler 大 / 小调轮廓做皮尔逊相关，取 12 个旋转中的最大值：</p>
+  <p class="code code-first">chroma[pc] += ln( 1 + 60·|X_t[k]| ),   pc = round( 12·log₂(f/440) + 69 ) mod 12</p>
+<p class="code">r_major&#160;=&#160;max_r&#160;corr(&#160;roll(chroma,&#160;r),&#160;KK_major&#160;)</p>
+<p class="code">r_minor&#160;=&#160;max_r&#160;corr(&#160;roll(chroma,&#160;r),&#160;KK_minor&#160;)</p>
+<p class="code">&#160;</p>
+<p class="code">modeScore&#160;=&#160;r_major&#160;−&#160;r_minor&#160;&#160;&#160;&#160;&#160;&#160;（&gt;&#160;0&#160;大调，&lt;&#160;0&#160;小调）</p>
+<p class="code code-last">tonality&#160;&#160;=&#160;max(&#160;r_major,&#160;r_minor&#160;)&#160;（调性强度，衡量调感是否清晰）</p>
+
+  <h3>3.5　频率分布特征</h3>
+  <p class="code code-first">谱质心     C = Σ_k f_k·|X_t[k]| / Σ_k |X_t[k]|        （音色「亮度」，单位 Hz）</p>
+<p class="code">低频比&#160;&#160;&#160;&#160;&#160;R_low&#160;&#160;=&#160;E(&lt;250&#160;Hz)&#160;/&#160;E_all&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;（贝斯&#160;/&#160;底鼓重量）</p>
+<p class="code">高频比     R_high = E(&gt;2 kHz)  / E_all                （镲片 / 齿音 / 失真，尖锐感来源）</p>
+<p class="code">响度&#160;&#160;&#160;&#160;&#160;&#160;&#160;RMS_dB&#160;=&#160;20·log₁₀(&#160;mean_t&#160;RMS_t&#160;)</p>
+<p class="code code-last">起音密度   onsetDensity = 有效起音峰数 / 时长（个/秒） ← 节奏密集程度，与 BPM 互补</p>
+
+  <h3>3.6　特征归一化</h3>
+  <table>
+    <thead>
+      <tr><th style="width:22%">特征</th><th style="width:34%">归一化公式</th><th>情绪含义</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>速度 bpmN</td><td>clamp((BPM − 56) / 102)</td><td>快慢 → 唤醒度</td></tr>
+      <tr><td>亮度 brightN</td><td>clamp((C − 800) / 2400)</td><td>音色明暗 → 效价 / 唤醒</td></tr>
+      <tr><td>响度 energyN</td><td>clamp((RMS_dB + 32) / 26)</td><td>能量感</td></tr>
+      <tr><td>起音密度 onsetN</td><td>clamp((density − 0.6) / 4.0)</td><td>节奏密度</td></tr>
+      <tr><td>调式 modeN</td><td>clamp(0.5 + 2·modeScore)</td><td>大调 ↔ 小调 → 效价（主导项）</td></tr>
+      <tr><td>调性强度 tonalityN</td><td>clamp(tonality)</td><td>调性感是否清晰</td></tr>
+      <tr><td>高频比 highN</td><td>clamp((R_high − 0.02) / 0.35)</td><td>尖锐 / 刺激感</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 3-1　七维特征归一化方式（clamp 约束到 [0, 1]）</p>
+
+  <h3>3.7　映射到情绪平面（权重由标注曲目最小二乘标定）</h3>
+  <p class="code code-first">Arousal&#160;=&#160;0.780·bpmN&#160;+&#160;0.030·brightN&#160;+&#160;0.230·energyN&#160;+&#160;0.150·onsetN</p>
+<p class="code">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;+&#160;0.080·modeN&#160;+&#160;0.020·tonalityN&#160;+&#160;0.020·highN</p>
+<p class="code">&#160;</p>
+<p class="code">Valence&#160;=&#160;−0.010&#160;+&#160;0.020·bpmN&#160;+&#160;0.390·brightN&#160;+&#160;0.020·energyN&#160;+&#160;0.090·onsetN</p>
+<p class="code code-last">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;+&#160;0.670·modeN&#160;+&#160;0.020·tonalityN&#160;+&#160;0.020·highN</p>
+  <p>权重由 12 首「BPM / 调式 / 情绪标签已知」的标注曲目做<b>带下界约束的最小二乘回归</b>得到（<code>scipy.optimize.lsq_linear</code>，下界 0.02 保证每个特征都保留可解释的正向贡献），而非手工拍定。可以看出唤醒度主要由速度贡献（0.78），效价主要由调式贡献（0.67）——与人耳直觉一致。</p>
+
+  <h3>3.8　复杂度</h3>
+  <p class="code code-first">STFT:&#160;&#160;O(N_frames&#160;·&#160;N&#160;log&#160;N)&#160;=&#160;O(N&#160;log&#160;N)，N&#160;为采样点数</p>
+<p class="code">其余:&#160;&#160;每帧&#160;O(N)（通量&#160;/&#160;色度&#160;/&#160;质心&#160;/&#160;频段能量一遍扫完）</p>
+<p class="code">ACF:&#160;&#160;&#160;O(L_max&#160;·&#160;N_frames)，L_max&#160;≈&#160;47&#160;帧</p>
+<p class="code code-last">实测:&#160;&#160;25&#160;秒曲目&#160;92–236&#160;ms（单线程&#160;JS），分析结果写入&#160;localStorage&#160;缓存</p>
+
+<!-- ===================== 第四章 ===================== -->
+  <h2 id="ch4">四、推荐算法与策略</h2>
+
+  <h3>4.1　目标情绪点的计算</h3>
+  <p>不直接用「最大类」，而是用<b>整条 7 类概率分布</b>投影到 VA 平面（期望值）。这样「70 % 开心 + 25 % 平静」和「95 % 开心」会得到不同的目标点，信息利用更充分。</p>
+  <p class="code code-first">V_target&#160;=&#160;Σ_k&#160;P[k]·V_k&#160;,&#160;&#160;&#160;&#160;A_target&#160;=&#160;Σ_k&#160;P[k]·A_k</p>
+<p class="code">&#160;</p>
+<p class="code">再按策略与「调节目标」混合：</p>
+<p class="code">&#160;&#160;情绪共鸣&#160;congruent&#160;:&#160;T&#160;=&#160;T_cong</p>
+<p class="code">&#160;&#160;情绪调节&#160;regulate&#160;&#160;:&#160;T&#160;=&#160;0.25·T_cong&#160;+&#160;0.75·T_reg</p>
+<p class="code code-last">&#160;&#160;混合策略&#160;mixed&#160;&#160;&#160;&#160;&#160;:&#160;T&#160;=&#160;0.70·T_cong&#160;+&#160;0.30·T_reg</p>
+
+  <table>
+    <thead>
+      <tr><th style="width:16%">识别到</th><th style="width:36%">情绪共鸣（陪着）</th><th>情绪调节（牵引到）</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>开心</td><td>明亮大调、快板</td><td>高效价 + 中高唤醒（保持好状态）</td></tr>
+      <tr><td>悲伤</td><td>小调、慢速、低亮度</td><td>V 0.64 / A 0.46（先共情，再轻推向上）</td></tr>
+      <tr><td>愤怒</td><td>失真、强节奏、高响度</td><td>V 0.52 / A 0.30（降唤醒、泄压）</td></tr>
+      <tr><td>惊讶</td><td>离调、跳跃、尖锐</td><td>V 0.60 / A 0.52（收敛刺激）</td></tr>
+      <tr><td>恐惧</td><td>暗色、悬疑、不稳定</td><td>V 0.58 / A 0.32（给安全感）</td></tr>
+      <tr><td>平静</td><td>中速、通透</td><td>V 0.60 / A 0.46（维持）</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 4-1　两种策略对六种情绪的目标点设定</p>
+
+  <h3>4.2　内容相似度（加权欧氏距离）</h3>
+  <p class="code code-first">d(T, S)   = √( w_V·(V_T − V_S)² + w_A·(A_T − A_S)² ) / √(w_V + w_A),   w_V = 1.0, w_A = 0.8</p>
+<p class="code code-last">sim(T,&#160;S)&#160;=&#160;1&#160;−&#160;d(T,&#160;S)&#160;∈&#160;[0,&#160;1]</p>
+  <p>效价权重更大：调式（大 / 小调）对情绪效价的影响比速度对唤醒度的影响更直接、更稳定。</p>
+
+  <h3>4.3　多样性重排：MMR</h3>
+  <p>纯按相似度排序容易给出 6 首几乎一样安静的歌。用 Maximal Marginal Relevance 在「相关」与「不重复」之间取平衡：</p>
+  <p class="code code-first code-last">MMR(S_i) = λ · score(S_i) − (1 − λ) · max_(S_j ∈ 已选) sim(S_i, S_j),   λ = 0.72</p>
+  <p>每次挑 MMR 最大的进榜，再迭代——保证前 6 首既贴近目标情绪，又在 VA 平面上铺开。副作用是：若上传的曲目与库内某首歌完全相同，两者 VA 坐标一致，多样性重排会把其中一首挤出前 6，这是预期行为而非缺陷。</p>
+
+  <h3>4.4　在线反馈学习（画像更新）</h3>
+  <p class="code code-first">score&#160;=&#160;0.78·sim(T,&#160;S)&#160;+&#160;0.22·sim(Profile,&#160;S)&#160;+&#160;0.09·feedback[S]</p>
+<p class="code">&#160;</p>
+<p class="code">点&#160;♡（喜欢）：Profile&#160;←&#160;Profile&#160;+&#160;0.35·(S&#160;−&#160;Profile)</p>
+<p class="code code-last">点&#160;⏭（跳过）：Profile&#160;←&#160;Profile&#160;−&#160;0.18·(S&#160;−&#160;Profile)</p>
+  <p>画像权重随交互次数增长，最多占 22 % 的影响，避免几首歌就把推荐带偏。画像、反馈与所选策略都写入 localStorage（键 <code>emotionMusic.profile.v1</code>），刷新或重开浏览器后继续生效。点「重置画像」清空画像与反馈并立刻重排推荐，所选策略作为界面偏好保留。</p>
+
+  <h3>4.5　在线曲库（Audius 开放 API）</h3>
+  <ul>
+    <li>按当前情绪的关键词检索（如 sad → <code>sad melancholy piano</code>），取前 4 首可流式播放的曲目。</li>
+    <li><b>关键词逐级退让</b>：Audius 的检索是多词「同时命中」语义，词越多命中越少——实测 <code>happy upbeat feel good</code> 返回 0 条，而 <code>happy upbeat</code> 返回 4 条。因此查询会从长到短逐级回退（4 词 → 3 词 → 2 词 → 1 词），累加去重，够 2 条即停。</li>
+    <li>在线曲目没有本地文件，先用「关键词 → VA 先验」粗排；<b>用户点播后</b>浏览器拉取音频流，用第三章同一套算法做真实旋律分析，VA 与匹配度随即刷新（界面标注「VA 先验」表示尚未分析）。</li>
+    <li>在线结果与本地曲库<b>混在同一个候选池</b>里参与 MMR 排序，不搞两套逻辑。</li>
+  </ul>
+  <table>
+    <thead>
+      <tr><th style="width:12%">情绪</th><th style="width:38%">查询串</th><th style="width:12%">命中</th><th style="width:16%">耗时</th><th>首条结果</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>开心</td><td>happy upbeat feel good</td><td>4</td><td>2143 ms</td><td>Stigma</td></tr>
+      <tr><td>悲伤</td><td>sad melancholy piano</td><td>4</td><td>651 ms</td><td>Maudlin Ballad</td></tr>
+      <tr><td>愤怒</td><td>aggressive intense rock</td><td>3</td><td>661 ms</td><td>Wrecking Machine</td></tr>
+      <tr><td>惊讶</td><td>surprise electronic experimental</td><td>4</td><td>1246 ms</td><td>Skate</td></tr>
+      <tr><td>平静</td><td>calm chill ambient</td><td>4</td><td>733 ms</td><td>Spa Meditation</td></tr>
+      <tr><td>恐惧</td><td>dark tense cinematic</td><td>4</td><td>601 ms</td><td>Underground Shadows</td></tr>
+      <tr><td>厌恶</td><td>quirky dissonant weird</td><td>4</td><td>1163 ms</td><td>Quirky (demo)</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 4-2　七种情绪的在线检索实测（加入退让机制后）</p>
+  <div data-component="callout" data-variant="info">
+    <div class="callout-content">
+      <p><b>改造前后对比：</b>退让机制上线前，「开心」与「厌恶」两个情绪都是 0 条——四个词同时命中在 Audius 上几乎不存在，而「开心」恰好是演示人脸库的第一张，等于最常用的路径整条空转。退让后 7/7 全部有结果。耗时差异来自回退层数：一次命中约 0.6 s，退让三层约 2 s，结果按会话内 URL 缓存，重复点按不再付这份开销。流地址实测 <code>Range: bytes=0-1023</code> 返回 <code>206 audio/mpeg</code>，可直接喂给 <code>&lt;audio&gt;</code>，实测 readyState=4、playback 正常推进。</p>
+    </div>
+  </div>
+
+<!-- ===================== 第五章 ===================== -->
+  <h2 id="ch5">五、实测数据与工程结论</h2>
+
+  <h3>5.1　本地曲库旋律分析精度</h3>
+  <table>
+    <thead>
+      <tr><th style="width:22%">指标</th><th style="width:20%">结果</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>BPM 平均相对误差</td><td><b>0.1 %</b></td><td>12/12 首落在 ±1 BPM 内（倍频消歧前后分别为 36 % 与 0.1 %）</td></tr>
+      <tr><td>调式判定准确率</td><td><b>11 / 12</b></td><td>唯一错判的是刻意写成半音化 / 离调的「静电惊雷」，属预期内</td></tr>
+      <tr><td>单曲分析耗时</td><td>92 – 236 ms</td><td>25–50 秒曲目，单线程 JS，含解码后重采样</td></tr>
+      <tr><td>整首上传分析</td><td><b>472 ms</b></td><td>8.4 MB / 199 秒 WAV，只取前 90 秒统计；端到端（含解码 + 落盘）816 ms</td></tr>
+      <tr><td>缓存命中</td><td>≈ 0 ms</td><td>结果写入 localStorage，二次进入直接读取</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 5-1　旋律分析精度与耗时（12 首标注曲目）</p>
+
+  <h3>5.2　人脸识别各环节耗时</h3>
+  <table>
+    <thead>
+      <tr><th style="width:40%">环节</th><th style="width:26%">WebGL</th><th>CPU 回退</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>TinyFaceDetector（416 / 320 / 224）</td><td>15 – 35 ms</td><td>200 – 600 ms</td></tr>
+      <tr><td>68 点关键点</td><td>3 – 8 ms</td><td>60 – 150 ms</td></tr>
+      <tr><td>表情分类</td><td>&lt; 5 ms</td><td>20 – 50 ms</td></tr>
+      <tr><td><b>整帧合计</b></td><td><b>20 – 60 ms</b></td><td><b>300 – 800 ms</b>（输入降为 224）</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 5-2　单帧识别耗时分解</p>
+
+  <h3>5.3　识别档位实验：输入尺寸不是越大越好</h3>
+  <p>在纯 CPU 后端、15 张演示人脸、同一套融合与平滑参数下，只改变检测输入尺寸：</p>
+  <table>
+    <thead>
+      <tr><th style="width:20%">档位</th><th style="width:14%">输入尺寸</th><th style="width:14%">检出</th><th style="width:16%">标签正确</th><th style="width:18%">平均单帧</th><th>平均置信度</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>高精度</td><td>320</td><td>13 / 15</td><td>12 / 15</td><td>1291 ms</td><td>0.68</td></tr>
+      <tr><td><b>均衡（默认）</b></td><td><b>256</b></td><td><b>14 / 15</b></td><td><b>12 / 15</b></td><td><b>954 ms</b></td><td><b>0.73</b></td></tr>
+      <tr><td>快速</td><td>192</td><td>11 / 15</td><td>10 / 15</td><td>611 ms</td><td>0.59</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 5-3　CPU 后端三档输入尺寸的表现</p>
+  <div data-component="callout" data-variant="warning">
+    <div class="callout-content">
+      <p><b>两处反直觉，都是实测推翻直觉：</b></p>
+      <p>其一，<b>输入越大并不越准</b>。320 的检出（13）反而少于 256（14）——TinyFaceDetector 的 anchor 只覆盖一定的人脸尺度区间，把本就占满画面的脸再放大，反而掉出可检出范围。</p>
+      <p>其二，<b>没有放宽检测阈值</b>。把 <code>scoreThreshold</code> 从 0.4 降到 0.35 确实能把最后一张补齐，但那一张会被高置信度错判成「开心」。对一个主打准确率的系统来说，给错答案比明确说「未检测到人脸」更伤可信度，所以保留 0.4。</p>
+      <p>结论：纯 CPU 环境默认「均衡」，比「高精度」快 26 %，检出还多一张；档位选择会记住，下次进来沿用。</p>
+    </div>
+  </div>
+
+  <h3>5.4　健壮性与边界验证</h3>
+  <table>
+    <thead>
+      <tr><th style="width:32%">场景</th><th>表现</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>伪装的 mp3（文本改后缀）</td><td>原生解码报错被映射为「无法解码：文件可能损坏，或编码不被浏览器支持」，状态复位、曲库不变</td></tr>
+      <tr><td>0 字节 wav</td><td>同上，不产生半截曲目</td></tr>
+      <tr><td>视频文件投到音频上传口</td><td>被类型过滤拦下并 toast 提示，不进入分析队列</td></tr>
+      <tr><td>切换输入模式</td><td>采集定时器、MediaStream、rAF 循环全部释放，无后台空转</td></tr>
+      <tr><td>刷新页面</td><td>画像 / 反馈 / 策略 / 识别档位 / 已上传曲目全部还原</td></tr>
+      <tr><td>页面卸载</td><td>所有 objectURL 被 revoke，不泄漏内存</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 5-4　异常与边界场景的处理结果</p>
+
+  <h3>5.5　素材与体积</h3>
+  <ul>
+    <li>识别模型权重：193 KB + 77 KB + 329 KB ≈ <b>0.6 MB</b>（随项目本地分发，断网可用）。</li>
+    <li>本地曲库：12 首 22050 Hz 单声道 WAV，共约 16 MB。</li>
+    <li>演示人脸：15 张 800 px JPEG，共 1.8 MB。</li>
+    <li>代码（HTML + CSS + JS）：约 128 KB，无构建步骤、无 node_modules。</li>
+  </ul>
+
+<!-- ===================== 第六章 ===================== -->
+  <h2 id="ch6">六、复现与验证</h2>
+
+  <h3>6.1　运行方式</h3>
+  <p>项目必须以 HTTP 方式打开（ES Module 与模型权重按相对路径加载；摄像头需要安全上下文，localhost 满足条件）。</p>
+  <p class="code code-first">方式一（Windows&#160;推荐）：双击项目根目录的「启动.bat」</p>
+<p class="code">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;脚本自动寻找&#160;Python、在&#160;8123&#160;端口起服务并打开浏览器；</p>
+<p class="code">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;若服务已在运行则只打开浏览器，关闭窗口即停止服务。</p>
+<p class="code">&#160;</p>
+<p class="code">方式二（命令行）：</p>
+<p class="code">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;cd&#160;emoMusic20261028</p>
+<p class="code">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;python&#160;-m&#160;http.server&#160;8123</p>
+<p class="code code-last">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;浏览&#160;http://127.0.0.1:8123/index.html</p>
+  <p>演示快捷方式：<code>http://127.0.0.1:8123/index.html?face=faces/happy_1.jpg</code> 会自动跑完整条链路。</p>
+
+  <h3>6.2　复现脚本</h3>
+  <table>
+    <thead>
+      <tr><th style="width:32%">命令</th><th>作用</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>node tools/test_analyzer.js</td><td>用真实 WAV 跑 DSP，输出特征与精度表</td></tr>
+      <tr><td>node tools/tune.js</td><td>色度 / 测速参数的网格实验</td></tr>
+      <tr><td>python tools/calibrate.py</td><td>NNLS 标定 VA 映射权重</td></tr>
+      <tr><td>python tools/make_music.py</td><td>重新合成 12 首标注曲目（BPM / 调式在生成时已知）</td></tr>
+      <tr><td>node tools/cdp.mjs &lt;url&gt; &lt;js&gt;</td><td>极简 CDP 调试器：读页面状态、跑长脚本、截图</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 6-1　可复现的验证脚本</p>
+
+  <h3>6.3　端到端回归清单</h3>
+  <p>一次完整回归（无头 Chrome + CDP 驱动）覆盖以下动作，全程 <code>console.error</code> 与 <code>unhandledrejection</code> 均为 0 条：</p>
+  <p class="code code-first">识别&#160;happy&#160;82%&#160;→&#160;在线检索&#160;4&#160;条&#160;→&#160;播放（readyState&#160;4，时间推进）</p>
+<p class="code">→&#160;点赞两次（画像权重&#160;0.24）→&#160;依次切换三种策略（列表各重排一次）</p>
+<p class="code">→&#160;跳过（负反馈入画像）→&#160;切到摄像头模式再切回（采集资源已释放）</p>
+<p class="code code-last">→&#160;重置画像（权重归零，按钮自动隐藏）</p>
+
+  <h3>6.4　目录结构</h3>
+  <p class="code code-first">emoMusic20261028/</p>
+<p class="code">├─&#160;index.html&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;页面骨架&#160;+&#160;使用&#160;/&#160;算法说明</p>
+<p class="code">├─&#160;css/style.css&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;深色&#160;UI</p>
+<p class="code">├─&#160;js/app.js&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;Vue&#160;3&#160;应用（采集、识别、推荐、播放）</p>
+<p class="code">├─ js/face-engine.js     人脸情绪识别引擎（检测 / 关键点 / 分类 / 融合 / 平滑）</p>
+<p class="code">├─ js/music-engine.js    旋律曲调情绪识别（STFT / 通量 / ACF / 色度 / 质心 → VA）</p>
+<p class="code">├─&#160;js/dsp.js&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;FFT、加窗、重采样等底层</p>
+<p class="code">├─&#160;js/recommender.js&#160;&#160;&#160;&#160;&#160;目标点、加权距离、MMR、画像更新</p>
+<p class="code">├─ js/upload-store.js    用户上传曲目的 IndexedDB 持久化（存 Blob，非 base64）</p>
+<p class="code">├─&#160;js/online.js&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;Audius&#160;在线曲库接入（含关键词退让）</p>
+<p class="code">├─&#160;js/emotions.js&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;情绪常量与&#160;VA&#160;映射表</p>
+<p class="code">├─&#160;models/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;face-api&#160;模型权重（本地）</p>
+<p class="code">├─&#160;songs/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;12&#160;首本地曲目&#160;+&#160;tracks.json</p>
+<p class="code">├─&#160;faces/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;15&#160;张演示人脸&#160;+&#160;manifest.json</p>
+<p class="code code-last">└─&#160;tools/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;曲库合成、算法标定与离线测试脚本</p>
+
+<!-- ===================== 附录 ===================== -->
+  <h2 id="ch7">附录　术语与已知限制</h2>
+
+  <h3>附录 A　术语表</h3>
+  <table>
+    <thead>
+      <tr><th style="width:24%">术语</th><th>含义</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>VA 平面</td><td>Valence-Arousal 二维情绪模型：效价表示愉快程度，唤醒表示激动程度</td></tr>
+      <tr><td>AU</td><td>Action Unit，面部动作单元；本系统用关键点几何量做近似</td></tr>
+      <tr><td>STFT</td><td>短时傅里叶变换，用滑窗把时域信号转成时频谱</td></tr>
+      <tr><td>谱通量</td><td>相邻帧幅度谱的正向差分和，用于检测起音（能量突增）</td></tr>
+      <tr><td>倍频消歧</td><td>修正自相关把「两拍」当「一拍」导致的 BPM 减半 / 加倍</td></tr>
+      <tr><td>MMR</td><td>Maximal Marginal Relevance，在相关性与多样性之间折中的重排策略</td></tr>
+      <tr><td>EMA</td><td>指数滑动平均，本系统用作情绪概率的低通滤波</td></tr>
+      <tr><td>IndexedDB</td><td>浏览器内置的键值数据库，可存二进制 Blob，配额远大于 localStorage</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">表 A-1　术语对照</p>
+
+  <h3>附录 B　已知限制与可继续改进的方向</h3>
+  <ul>
+    <li><b>妆容与遮挡</b>：口罩、墨镜、浓妆会显著降低关键点精度，几何通道随之失真；此时结果基本由 CNN 主导。</li>
+    <li><b>多人画面</b>：只取置信度最高的一张脸，不做多人情绪聚合。</li>
+    <li><b>在线曲目的 VA 初值</b>：来自关键词先验，若曲目标题 / 描述不含情绪词，会落到中性 0.5 / 0.5，需要点播后由真实分析纠正。</li>
+    <li><b>曲库规模</b>：本地 12 首用于验证算法，推荐效果的多样性受曲库大小限制；可通过「上传我的歌曲」扩充。</li>
+    <li><b>可改进方向</b>：把音频分析移入 Web Worker 以彻底消除首屏分析时的主线程停顿（实测最长 261 ms）；离线包（Service Worker）以支持 PWA 安装；多人情绪均值用于聚会场景。</li>
+  </ul>
+
+</section>
+</body>
+</html>
